@@ -29,7 +29,11 @@ export function AITutor() {
   // Tự động cuộn xuống khi có tin nhắn mới
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const scrollElement = scrollRef.current;
+      // Dùng timeout nhỏ để đảm bảo DOM đã render xong trước khi cuộn
+      setTimeout(() => {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }, 100);
     }
   }, [messages, isLoading]);
 
@@ -50,11 +54,16 @@ export function AITutor() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3010/api/ai-tutor/chat", {
+      // --- SỬA LỖI URL TẠI ĐÂY ---
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
+      
+      const res = await fetch(`${API_BASE_URL}/api/ai-tutor/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userContent }),
       });
+
+      if (!res.ok) throw new Error("Mạng lỗi");
 
       const data = await res.json();
 
@@ -63,15 +72,14 @@ export function AITutor() {
         text: data.reply,
         sender: 'ai',
         timestamp: new Date(),
-        // Nếu AI trả về format JSON (câu hỏi), ta đánh dấu là Quiz
         isQuiz: data.isQuiz || false 
       };
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       setMessages((prev) => [...prev, {
-        id: 'err',
-        text: "Hệ thống đang bận, bạn thử lại sau giây lát nhé!",
+        id: 'err-' + Date.now(), // Đảm bảo ID luôn unique
+        text: "Hệ thống đang bận hoặc server chưa khởi động xong, bạn thử lại sau giây lát nhé!",
         sender: 'ai',
         timestamp: new Date()
       }]);
@@ -87,13 +95,17 @@ export function AITutor() {
         return (
           <div className="space-y-3">
             <p className="font-medium text-blue-700">📝 Practice Question:</p>
-            <p className="italic bg-gray-50 p-2 rounded border-l-4 border-blue-400 text-sm">{quiz.passage}</p>
+            {quiz.passage && (
+              <p className="italic bg-gray-50 p-2 rounded border-l-4 border-blue-400 text-sm">
+                {quiz.passage}
+              </p>
+            )}
             <p className="font-bold">{quiz.question}</p>
             <div className="grid grid-cols-1 gap-2 mt-2">
-              {Object.entries(quiz.choices).map(([key, val]) => (
+              {quiz.choices && Object.entries(quiz.choices).map(([key, val]) => (
                 <button
                   key={key}
-                  className="text-left p-2 rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all text-sm"
+                  className="text-left p-2 rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all text-sm block w-full"
                   onClick={() => setInput(`Đáp án của mình là ${key}. Giải thích cho mình tại sao đúng/sai?`)}
                 >
                   <span className="font-bold mr-2">{key}.</span> {val as string}
@@ -103,7 +115,7 @@ export function AITutor() {
           </div>
         );
       } catch {
-        return <p>{msg.text}</p>;
+        return <p className="whitespace-pre-wrap">{msg.text}</p>;
       }
     }
     return <p className="whitespace-pre-wrap">{msg.text}</p>;
@@ -135,7 +147,7 @@ export function AITutor() {
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-white p-3 rounded-lg shadow-sm flex gap-1">
+              <div className="bg-white p-3 rounded-lg shadow-sm flex gap-1 items-center">
                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></div>
                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>

@@ -7,7 +7,7 @@ import { AITutor } from '@/components/pages/AITutor';
 import { CreateQuiz } from '@/components/pages/CreateQuiz';
 import { Entertainment } from '@/components/pages/Entertainment';
 import { Profile } from '@/components/pages/Profile';
-import { QuizPlayer } from '@/components/pages/QuizPlayer'; // Đảm bảo bạn đã tạo file này
+import { QuizPlayer } from '@/components/pages/QuizPlayer';
 import { Button } from '@/components/ui/button';
 
 type Page = 'dashboard' | 'practice' | 'ai-tutor' | 'create-quiz' | 'entertainment' | 'profile';
@@ -40,7 +40,6 @@ export default function Home() {
     entertainmentMinutes: 0,
   });
 
-  // --- STATE CHO AI QUIZ ---
   const [generatedQuiz, setGeneratedQuiz] = useState<any[]>([]);
   const [isQuizGenerating, setIsQuizGenerating] = useState(false);
   const [quizStatus, setQuizStatus] = useState<QuizStatus>('idle');
@@ -49,86 +48,69 @@ export default function Home() {
   const [satQuestion, setSatQuestion] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- LOGIC ĐẾM NGƯỢC THỜI GIAN GIẢI TRÍ ---
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    
     if (currentPage === 'entertainment' && userData.entertainmentMinutes > 0) {
       timer = setInterval(() => {
-        // CÁCH SỬA: Dùng hàm cập nhật (prev) để lấy giá trị mới nhất 
-        // mà KHÔNG cần bỏ entertainmentMinutes vào mảng phụ thuộc bên dưới.
         setUserData((prev) => ({
           ...prev,
           entertainmentMinutes: Math.max(0, prev.entertainmentMinutes - 1),
         }));
-      }, 60000); // 1 phút chạy 1 lần
+      }, 60000);
     }
-
     return () => clearInterval(timer);
-    
-    // Mảng phụ thuộc CHỈ CẦN currentPage. 
-    // Khi bạn chuyển sang trang khác hoặc quay lại trang giải trí, nó sẽ tính toán lại.
-  }, [currentPage]);
+  }, [currentPage, userData.entertainmentMinutes]); // Thêm dependency để logic đếm ngược chuẩn hơn
 
-  // --- HÀM TẠO QUIZ TỪ AI ---
   const handleGenerateQuiz = async (subject: string, difficulty: string, count: number) => {
-  setIsQuizGenerating(true);
-  setQuizStatus('idle');
-  try {
-    // Luôn ưu tiên biến môi trường, fallback về link Render nếu lỗi
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
-
-    const response = await fetch(`${API_BASE_URL}/api/generate-quiz`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject, difficulty, count }),
-    });
-    
-    const data = await response.json();
-    if (data && data.questions) {
-      setGeneratedQuiz(data.questions);
-      setQuizStatus('playing');
-    } else {
-      throw new Error("Dữ liệu không hợp lệ");
+    setIsQuizGenerating(true);
+    setQuizStatus('idle');
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
+      const response = await fetch(`${API_BASE_URL}/api/generate-quiz`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, difficulty, count }),
+      });
+      
+      const data = await response.json();
+      if (data && data.questions) {
+        setGeneratedQuiz(data.questions);
+        setQuizStatus('playing');
+      } else {
+        throw new Error("Dữ Error");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi kết nối server AI!");
+    } finally {
+      setIsQuizGenerating(false);
     }
-  } catch (error) {
-    console.error("Lỗi tạo quiz:", error);
-    alert("Không thể kết nối với server AI! Vui lòng kiểm tra lại Render.");
-  } finally {
-    setIsQuizGenerating(false);
-  }
-};
+  };
 
-  // --- HÀM KHI HOÀN THÀNH QUIZ ---
   const handleFinishQuiz = (score: number) => {
     setLastQuizScore(score);
     setQuizStatus('finished');
-    
-    // Thưởng cho người học
     setUserData(prev => ({
       ...prev,
       exp: Math.min(prev.maxExp, prev.exp + (score * 15)),
-      entertainmentMinutes: prev.entertainmentMinutes + (score * 2), // 1 câu đúng = 2 phút chơi
+      entertainmentMinutes: prev.entertainmentMinutes + (score * 2),
       quizzesCompleted: prev.quizzesCompleted + 1
     }));
   };
 
- const fetchAIQuestion = async (category = 'math') => {
-  setIsLoading(true);
-  try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
-    
-    // Sử dụng template literal để truyền category linh hoạt
-    const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}`);
-    const data = await response.json();
-    setSatQuestion(data);
-  } catch (error) {
-    console.error("Lỗi fetch câu hỏi:", error);
-    alert("Lỗi kết nối Server! Vui lòng thử lại.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const fetchAIQuestion = async (category = 'math') => {
+    setIsLoading(true);
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
+      const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}`);
+      const data = await response.json();
+      setSatQuestion(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCorrectAnswer = () => {
     setUserData((prev) => ({
@@ -144,22 +126,29 @@ export default function Home() {
         return <Dashboard onPageChange={setCurrentPage} userData={userData} onStartPractice={() => setCurrentPage('practice')} isLoading={isLoading} />;
       
       case 'practice':
-        return <Practice onWrongAnswer={(c) => setUserData(p => ({...p, wrongAnswers: c}))} onCorrect={handleCorrectAnswer} />;
+        return (
+          <Practice 
+            onWrongAnswer={(c) => setUserData(p => ({...p, wrongAnswers: c}))} 
+            onCorrect={handleCorrectAnswer}
+            satQuestion={satQuestion} 
+            onFetchQuestion={fetchAIQuestion}
+            isLoading={isLoading}
+          />
+        );
+
       case 'ai-tutor':
-      return <AITutor />;
+        return <AITutor />; // Giờ đây AITutor đã có case riêng và sẽ hiển thị được
+
       case 'create-quiz':
         if (quizStatus === 'playing') {
           return <QuizPlayer questions={generatedQuiz} onFinish={handleFinishQuiz} />;
         }
         if (quizStatus === 'finished') {
           return (
-            <div className="flex flex-col items-center justify-center p-12 space-y-6 text-center animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center justify-center p-12 space-y-6 text-center">
               <div className="text-7xl">🏆</div>
               <h2 className="text-3xl font-bold">Quiz Completed!</h2>
               <p className="text-xl text-gray-600">Bạn đã trả lời đúng <b>{lastQuizScore}/{generatedQuiz.length}</b> câu hỏi.</p>
-              <div className="bg-green-50 text-green-700 px-4 py-2 rounded-lg font-medium">
-                +{(lastQuizScore * 2)} phút chơi game đã được thêm!
-              </div>
               <Button onClick={() => setQuizStatus('idle')} className="bg-blue-600 px-10">Tạo Quiz mới</Button>
             </div>
           );
@@ -182,15 +171,9 @@ export default function Home() {
       currentPage={currentPage}
       onPageChange={(page: any) => {
         setCurrentPage(page);
-        if (page !== 'create-quiz') setQuizStatus('idle'); // Reset trạng thái quiz khi chuyển trang
+        if (page !== 'create-quiz') setQuizStatus('idle');
       }}
-      userData={{
-        name: userData.name,
-        level: userData.level,
-        exp: userData.exp,
-        maxExp: userData.maxExp,
-        streak: userData.streak,
-      }}
+      userData={userData}
     >
       <div className="container mx-auto py-6">
         {renderPage()}
