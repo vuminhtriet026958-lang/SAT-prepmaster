@@ -72,29 +72,32 @@ export default function Home() {
 
   // --- HÀM TẠO QUIZ TỪ AI ---
   const handleGenerateQuiz = async (subject: string, difficulty: string, count: number) => {
-    setIsQuizGenerating(true);
-    setQuizStatus('idle');
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010'}/api/generate-quiz`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    // Giữ nguyên các biến subject, difficulty, count của bạn ở đây
-    body: JSON.stringify({ subject, difficulty, count }),
-});
-      const data = await response.json();
-      if (data && data.questions) {
-        setGeneratedQuiz(data.questions);
-        setQuizStatus('playing');
-      } else {
-        throw new Error("Dữ liệu không hợp lệ");
-      }
-    } catch (error) {
-      console.error("Lỗi tạo quiz:", error);
-      alert("Không thể kết nối với server AI!");
-    } finally {
-      setIsQuizGenerating(false);
+  setIsQuizGenerating(true);
+  setQuizStatus('idle');
+  try {
+    // Luôn ưu tiên biến môi trường, fallback về link Render nếu lỗi
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
+
+    const response = await fetch(`${API_BASE_URL}/api/generate-quiz`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, difficulty, count }),
+    });
+    
+    const data = await response.json();
+    if (data && data.questions) {
+      setGeneratedQuiz(data.questions);
+      setQuizStatus('playing');
+    } else {
+      throw new Error("Dữ liệu không hợp lệ");
     }
-  };
+  } catch (error) {
+    console.error("Lỗi tạo quiz:", error);
+    alert("Không thể kết nối với server AI! Vui lòng kiểm tra lại Render.");
+  } finally {
+    setIsQuizGenerating(false);
+  }
+};
 
   // --- HÀM KHI HOÀN THÀNH QUIZ ---
   const handleFinishQuiz = (score: number) => {
@@ -110,18 +113,22 @@ export default function Home() {
     }));
   };
 
-  const fetchAIQuestion = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("https://sat-prepmaster.onrender.com/api/sat-question?category=math")
-      const data = await response.json();
-      setSatQuestion(data);
-    } catch (error) {
-      alert("Lỗi kết nối Server!");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ const fetchAIQuestion = async (category = 'math') => {
+  setIsLoading(true);
+  try {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
+    
+    // Sử dụng template literal để truyền category linh hoạt
+    const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}`);
+    const data = await response.json();
+    setSatQuestion(data);
+  } catch (error) {
+    console.error("Lỗi fetch câu hỏi:", error);
+    alert("Lỗi kết nối Server! Vui lòng thử lại.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleCorrectAnswer = () => {
     setUserData((prev) => ({

@@ -22,10 +22,15 @@ app.get('/api/sat-question', async (req, res) => {
     Create a SAT Math question (Algebra, Advanced Math, or Problem Solving). 
     CRITICAL INSTRUCTIONS for accuracy:
     1. **Solve First**: Internally solve the problem step-by-step to find the exact numerical answer.
-    2. **Verified Options**: Create 4 options where EXACTLY ONE is the correct result of your calculation.
-    3. **Plausible Distractors**: The 3 wrong options must be common mistakes (e.g., sign errors, wrong operation) but NOT just random numbers.
-    4. **No Near-Misses**: Ensure the correct answer is 100% mathematically sound. Do not use approximations unless the question asks for it.
-    5. **Output**: Return a JSON with 'question', 'options', 'answer', and a 'step_by_step_explanation'.
+    2. **Verified Options**: Create 4 options labeled A, B, C, D. EXACTLY ONE must be the correct result.
+    3. **Plausible Distractors**: The 3 wrong options must be common mistakes, not random numbers.
+    4. **Strict Labeling**: The 'answer' field MUST be the LETTER of the correct option (e.g., "A", "B", "C", or "D"), NOT the numerical value.
+    5. **Consistency Check**: Double-check that the numerical value in the 'answer' letter matches your 'step_by_step_explanation'.
+    6. **Output Format**: Return ONLY a JSON object with:
+       - 'question': the text of the question.
+       - 'options': ["A) value", "B) value", "C) value", "D) value"]
+       - 'answer': "The correct letter"
+       - 'step_by_step_explanation': "Detailed explanation"
   `;
 } else if (category === 'writing') {
     topicInstruction = "Create a SAT Writing & Language question focusing on grammar, punctuation, or sentence structure.";
