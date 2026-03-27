@@ -26,14 +26,13 @@ export function Practice({
   const [showFeedback, setShowFeedback] = useState(false);
   const [stats, setStats] = useState({ correct: 0, wrong: 0 });
 
-  // 1. Tự động gọi AI khi đổi Tab
+  // Tự động tải câu hỏi khi đổi môn
   useEffect(() => {
     setSelectedAnswer(null);
     setShowFeedback(false);
     onFetchQuestion(currentTab); 
   }, [currentTab]);
 
-  // 2. Logic kiểm tra đáp án
   const handleAnswerSelect = (index: number) => {
     if (showFeedback || !satQuestion) return;
     
@@ -43,7 +42,7 @@ export function Practice({
     const labels = ['A', 'B', 'C', 'D'];
     const selectedLabel = labels[index];
     
-    // So khớp đáp án (AI trả về 'A', 'B', 'C', hoặc 'D')
+    // So khớp với trường 'answer' từ Backend (ví dụ: "A")
     const isCorrect = selectedLabel === satQuestion.answer;
 
     if (!isCorrect) {
@@ -62,27 +61,16 @@ export function Practice({
     onFetchQuestion(currentTab); 
   };
 
-  const handleTabChange = (tab: Tab) => {
-    setCurrentTab(tab);
-    // Reset stats khi đổi môn học nếu muốn, hoặc giữ nguyên tùy bạn
-    setStats({ correct: 0, wrong: 0 });
-  };
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Practice Zone</h1>
-        <p className="text-gray-600">Trả lời câu hỏi AI để tích lũy kinh nghiệm và thời gian chơi game</p>
-      </div>
-
-      {/* Tabs */}
+      {/* Header & Tabs */}
       <div className="flex gap-2 border-b border-gray-200">
         {(['math', 'reading', 'writing'] as const).map((tab) => (
           <button
             key={tab}
-            onClick={() => handleTabChange(tab)}
+            onClick={() => setCurrentTab(tab)}
             className={`px-6 py-3 font-medium capitalize border-b-2 transition-colors ${
-              currentTab === tab ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'
+              currentTab === tab ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-600'
             }`}
           >
             {tab}
@@ -90,94 +78,99 @@ export function Practice({
         ))}
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 bg-green-50 border-0 shadow-sm text-center">
+        <Card className="p-4 bg-green-50 text-center border-0 shadow-sm">
           <div className="text-2xl font-bold text-green-600">{stats.correct}</div>
-          <p className="text-sm text-gray-600">Đúng</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Correct</p>
         </Card>
-        <Card className="p-4 bg-red-50 border-0 shadow-sm text-center">
+        <Card className="p-4 bg-red-50 text-center border-0 shadow-sm">
           <div className="text-2xl font-bold text-red-600">{stats.wrong}</div>
-          <p className="text-sm text-gray-600">Sai</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Wrong</p>
         </Card>
-        <Card className="p-4 bg-blue-50 border-0 shadow-sm text-center">
+        <Card className="p-4 bg-blue-50 text-center border-0 shadow-sm">
           <div className="text-2xl font-bold text-blue-600">
-            {stats.correct + stats.wrong > 0 
-              ? Math.round((stats.correct / (stats.correct + stats.wrong)) * 100) 
-              : 0}%
+            {stats.correct + stats.wrong > 0 ? Math.round((stats.correct / (stats.correct + stats.wrong)) * 100) : 0}%
           </div>
-          <p className="text-sm text-gray-600">Tỷ lệ đúng</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Accuracy</p>
         </Card>
       </div>
 
-      {/* Question Card */}
-      <Card className="p-8 bg-white border border-gray-200 shadow-sm min-h-[400px] flex flex-col justify-center">
+      {/* Main Question Area */}
+      <Card className="p-8 bg-white border border-gray-200 shadow-sm min-h-[450px] relative">
         {isLoading || !satQuestion ? (
-          <div className="flex flex-col items-center justify-center space-y-4 py-12">
+          <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-gray-500 animate-pulse">AI đang soạn câu hỏi {currentTab}...</p>
+            <p className="text-gray-400">AI is generating your {currentTab} challenge...</p>
           </div>
         ) : (
           <div className="animate-in fade-in duration-500">
-            {/* PHẦN QUAN TRỌNG: Hiển thị Passage cho Reading/Writing */}
-            {satQuestion.passage && (
-              <div className="mb-6 p-4 bg-slate-50 border-l-4 border-blue-400 rounded-r-lg">
-                <p className="text-sm leading-relaxed text-gray-700 italic">{satQuestion.passage}</p>
+            {/* 1. HIỂN THỊ ĐOẠN VĂN (Cho Reading/Writing) */}
+            {satQuestion.passage && satQuestion.passage !== "null" && (
+              <div className="mb-6 p-5 bg-slate-50 border-l-4 border-blue-500 rounded-r-xl shadow-sm">
+                <p className="text-gray-700 leading-relaxed italic text-sm md:text-base">
+                  {satQuestion.passage}
+                </p>
               </div>
             )}
 
-            <div className="mb-6">
-              <p className="text-lg font-semibold text-gray-900 leading-snug">
+            {/* 2. CÂU HỎI */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-gray-900 leading-tight">
                 {satQuestion.question}
-              </p>
+              </h2>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 mb-6">
-              {satQuestion.options && satQuestion.options.map((option: string, index: number) => {
+            {/* 3. CÁC LỰA CHỌN ĐÁP ÁN */}
+            <div className="grid gap-3 mb-8">
+              {satQuestion.options?.map((option: string, index: number) => {
                 const labels = ['A', 'B', 'C', 'D'];
-                const isAnswerCorrect = labels[index] === satQuestion.answer;
-                const isUserSelected = selectedAnswer === index;
+                const isCorrect = labels[index] === satQuestion.answer;
+                const isSelected = selectedAnswer === index;
 
                 return (
                   <button
                     key={index}
                     onClick={() => handleAnswerSelect(index)}
                     disabled={showFeedback}
-                    className={`w-full p-4 text-left font-medium rounded-xl border-2 transition-all duration-200 ${
+                    className={`w-full p-4 text-left rounded-xl border-2 transition-all flex items-center ${
                       showFeedback 
-                        ? isAnswerCorrect 
-                          ? 'border-green-500 bg-green-50 text-green-700 shadow-sm' 
-                          : isUserSelected 
+                        ? isCorrect 
+                          ? 'border-green-500 bg-green-50 text-green-700' 
+                          : isSelected 
                             ? 'border-red-500 bg-red-50 text-red-700' 
-                            : 'border-gray-100 text-gray-400 opacity-60'
-                        : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
+                            : 'border-gray-100 text-gray-400 opacity-50'
+                        : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50'
                     }`}
                   >
-                    <span className="inline-block w-8 h-8 rounded-full bg-white border border-inherit text-center leading-7 mr-3 shadow-sm">
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-full mr-4 border font-bold ${
+                      showFeedback && isCorrect ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-300'
+                    }`}>
                       {labels[index]}
                     </span>
-                    {option}
+                    <span className="font-medium">{option.replace(/^[A-D]\)\s*/, '')}</span>
                   </button>
                 );
               })}
             </div>
 
+            {/* 4. GIẢI THÍCH (Bằng Tiếng Việt theo Prompt) */}
             {showFeedback && (
               <div className="animate-in slide-in-from-bottom-4 duration-300">
-                <Card className={`p-5 border-0 mb-6 shadow-inner ${
+                <div className={`p-6 rounded-xl mb-6 border-0 ${
                   selectedAnswer !== null && ['A','B','C','D'][selectedAnswer] === satQuestion.answer 
                     ? 'bg-green-100/50 text-green-900' 
                     : 'bg-red-100/50 text-red-900'
                 }`}>
-                  <p className="font-bold mb-2 flex items-center gap-2">
-                    {selectedAnswer !== null && ['A','B','C','D'][selectedAnswer] === satQuestion.answer ? '✅ Chính xác!' : '❌ Chưa đúng rồi!'}
-                  </p>
+                  <h4 className="font-bold text-lg mb-2">
+                    {selectedAnswer !== null && ['A','B','C','D'][selectedAnswer] === satQuestion.answer ? '✨ Tuyệt vời!' : '📚 Cần xem lại'}
+                  </h4>
                   <p className="text-sm leading-relaxed whitespace-pre-line">
                     {satQuestion.step_by_step_explanation || satQuestion.explanation}
                   </p>
-                </Card>
+                </div>
                 <Button onClick={handleNext} className="w-full bg-blue-600 hover:bg-blue-700 h-14 text-lg font-bold rounded-xl shadow-lg transition-transform active:scale-95">
-                  Câu hỏi tiếp theo →
+                  Next Question →
                 </Button>
               </div>
             )}

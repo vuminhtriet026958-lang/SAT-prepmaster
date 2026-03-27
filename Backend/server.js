@@ -14,54 +14,47 @@ const apiKey = process.env.GROQ_API_KEY;
 
 // 2. API Tạo câu hỏi đơn lẻ (Cho trang Practice)
 app.get('/api/sat-question', async (req, res) => {
-  const category = req.query.category || 'reading';
+  const category = req.query.category || 'math';
   let topicInstruction = "";
   
+  // Cấu trúc Prompt chung cho Reading/Writing
   if (category === 'math') {
-  topicInstruction = `
-  You are an expert SAT Math content creator. Your goal is to generate high-quality, realistic SAT Math questions (covering Algebra, Advanced Math, and Problem Solving).
-
-  STRICT ACCURACY PROTOCOL (To prevent calculation errors):
-  1. **Internal Verification**: Before generating the final output, you must internally solve the problem step-by-step.
-  2. **Double-Check Signs**: Pay extra attention to negative numbers and exponents (e.g., $(-2)^2$ is $4$, not $-4$).
-  3. **Option Matching**: The final numerical result MUST exactly match one of the four options (A, B, C, or D).
-  4. **Plausible Distractors**: The three incorrect options should represent common student mistakes (e.g., sign errors, forgetting to distribute).
-  5. **Math Formatting**: Use LaTeX ($...$) for all mathematical expressions and variables (e.g., $f(x) = 2x^2$).
-
-  OUTPUT FORMAT (Return ONLY a JSON object):
-  {
-    "question": "The text of the SAT question in English",
-    "options": ["A) value", "B) value", "C) value", "D) value"],
-    "answer": "The correct letter only (A, B, C, or D)",
-    "step_by_step_explanation": "A clear, pedagogical explanation in English showing the steps to reach the correct answer."
-  }
-
-  REFERENCE CASE:
-  If the question is f(-2) for $f(x) = 2x^2 + 5x - 3$:
-  - Calculate: $2(4) + 5(-2) - 3 = 8 - 10 - 3 = -5$.
-  - Ensure '-5' is the correct option and correctly labeled in the 'answer' field.
-`;
-} else if (category === 'writing') {
-    topicInstruction = "Create a SAT Writing & Language question focusing on grammar, punctuation, or sentence structure.";
+    topicInstruction = `
+      Generate a SAT Math question. 
+      1. Internal Solve: Verify calculations (e.g., $(-2)^2 = 4$).
+      2. Format: Use LaTeX ($...$) for math.
+      3. Fields: Provide 'question', 'options' (A, B, C, D), 'answer' (the letter), and 'explanation'.`;
   } else {
-    topicInstruction = "Create a SAT Reading question with a short passage (2-4 sentences) and a question about its purpose or meaning.";
+    topicInstruction = `
+      Generate a SAT ${category} question.
+      1. Passage: Include a short academic text (field: 'passage').
+      2. Question: Based on the passage.
+      3. Fields: Provide 'passage', 'question', 'options', 'answer', and 'explanation'.`;
   }
 
   const prompt = `
     Role: SAT Expert.
     Task: ${topicInstruction}
-    STRICT LANGUAGE RULES:
-    1. The "text" and "options" MUST BE 100% IN ENGLISH.
-    2. ONLY the "explanation" MUST BE IN VIETNAMESE.
-    Return ONLY JSON: {"text": "...", "options": ["..."], "correct": 0, "explanation": "..."}
+    STRICT RULES:
+    - Language: Question/Options/Passage in ENGLISH. Explanation in VIETNAMESE.
+    - Output: ONLY JSON.
+    - JSON Structure: 
+      {
+        "passage": "text or null",
+        "question": "text",
+        "options": ["A) ", "B) ", "C) ", "D) "],
+        "answer": "Letter (A/B/C/D)",
+        "step_by_step_explanation": "text in Vietnamese"
+      }
   `;
 
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
       model: 'llama-3.3-70b-versatile',
-      temperature: 0.5,
+      temperature: 0.2, // Chỉnh xuống 0.2 để tính toán chính xác hơn
     });
+    
     let aiResponse = chatCompletion.choices[0]?.message?.content || "";
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -70,10 +63,9 @@ app.get('/api/sat-question', async (req, res) => {
       throw new Error("JSON not found");
     }
   } catch (error) {
-    res.json({ text: "Error loading question.", options: ["A", "B", "C", "D"], correct: 0, explanation: "Lỗi kết nối AI." });
+    res.status(500).json({ error: "Lỗi kết nối AI." });
   }
 });
-
 // 3. API Tạo trọn bộ Quiz (Cho trang Create Quiz)
 app.post('/api/generate-quiz', async (req, res) => {
   const { subject, difficulty, count } = req.body;
@@ -163,9 +155,5 @@ app.post('/api/ai-tutor/chat', async (req, res) => {
 });
 
 // 4. Khởi chạy Server
-const PORT = 3010;
-app.listen(PORT, () => {
-    console.log("-----------------------------------------");
-    console.log(`🚀 SERVER ĐANG CHẠY: http://localhost:${PORT}`);
-    console.log("-----------------------------------------");
-});
+const PORT = process.env.PORT || 3010;
+app.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });
