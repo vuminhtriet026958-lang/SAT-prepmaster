@@ -21,8 +21,8 @@ app.get('/api/sat-question', async (req, res) => {
   if (category === 'math') {
     topicInstruction = `
       Generate a SAT Math question. 
-      1. Internal Solve: Verify calculations (e.g., $(-2)^2 = 4$).
-      2. Format: Use LaTeX ($...$) for math.
+      1. Internal Solve: Verify all calculations carefully (e.g., (-2)^2 = 4).
+      2. Format: Use plain text only. DO NOT use dollar signs ($) or LaTeX. Use ^ for exponents (e.g., x^2) and standard operators.
       3. Fields: Provide 'question', 'options' (A, B, C, D), 'answer' (the letter), and 'explanation'.`;
   } else if (category === 'writing') {
     topicInstruction = `
