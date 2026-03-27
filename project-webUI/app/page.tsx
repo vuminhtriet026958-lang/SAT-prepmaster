@@ -52,16 +52,23 @@ export default function Home() {
   // --- LOGIC ĐẾM NGƯỢC THỜI GIAN GIẢI TRÍ ---
   useEffect(() => {
     let timer: NodeJS.Timeout;
+    
     if (currentPage === 'entertainment' && userData.entertainmentMinutes > 0) {
       timer = setInterval(() => {
+        // CÁCH SỬA: Dùng hàm cập nhật (prev) để lấy giá trị mới nhất 
+        // mà KHÔNG cần bỏ entertainmentMinutes vào mảng phụ thuộc bên dưới.
         setUserData((prev) => ({
           ...prev,
           entertainmentMinutes: Math.max(0, prev.entertainmentMinutes - 1),
         }));
-      }, 60000);
+      }, 60000); // 1 phút chạy 1 lần
     }
+
     return () => clearInterval(timer);
-  }, [currentPage, userData.entertainmentMinutes]);
+    
+    // Mảng phụ thuộc CHỈ CẦN currentPage. 
+    // Khi bạn chuyển sang trang khác hoặc quay lại trang giải trí, nó sẽ tính toán lại.
+  }, [currentPage]);
 
   // --- HÀM TẠO QUIZ TỪ AI ---
   const handleGenerateQuiz = async (subject: string, difficulty: string, count: number) => {
