@@ -113,7 +113,7 @@ export default function Home() {
   const fetchAIQuestion = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010'}/api/sat-question`);
+      const response = await fetch("https://sat-prepmaster.onrender.com/api/sat-question?category=math")
       const data = await response.json();
       setSatQuestion(data);
     } catch (error) {
