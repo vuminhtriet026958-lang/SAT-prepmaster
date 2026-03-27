@@ -43,7 +43,7 @@ export function Practice({
     const selectedLabel = labels[index];
     
     // So khớp với trường 'answer' từ Backend (ví dụ: "A")
-    const isCorrect = selectedLabel === satQuestion.answer;
+    const isCorrect = selectedLabel === satQuestion.answer?.toUpperCase();
 
     if (!isCorrect) {
       const newWrongCount = stats.wrong + 1;
@@ -116,9 +116,9 @@ export function Practice({
 
             {/* 2. CÂU HỎI */}
             <div className="mb-8">
-              <h2 className="text-xl font-bold text-gray-900 leading-tight">
-                {satQuestion.question}
-              </h2>
+              <h2 className="text-xl font-bold text-gray-900 leading-tight whitespace-pre-line">
+  {satQuestion.question}
+</h2>
             </div>
 
             {/* 3. CÁC LỰA CHỌN ĐÁP ÁN */}

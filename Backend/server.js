@@ -10,7 +10,10 @@ const groq = new Groq({
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
 // --- 1. API Tạo câu hỏi đơn lẻ (Cho trang Practice) ---
 app.get('/api/sat-question', async (req, res) => {
   const category = req.query.category || 'math';
@@ -58,7 +61,7 @@ app.get('/api/sat-question', async (req, res) => {
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
       model: 'llama-3.1-8b-instant', 
-      temperature: 0,      // <--- THAY THẾ: Chỉnh từ 0.2 về 0 để AI phản hồi nhanh nhất
+      temperature: 0   ,   // <--- THAY THẾ: Chỉnh từ 0.2 về 0 để AI phản hồi nhanh nhất
       max_tokens: 800      // <--- THÊM MỚI: Đảm bảo AI không bị ngắt quãng giữa chừng
     });
     let aiResponse = chatCompletion.choices[0]?.message?.content || "";

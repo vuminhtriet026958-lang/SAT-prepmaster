@@ -102,7 +102,7 @@ export default function Home() {
     setIsLoading(true);
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
-      const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}`);
+      const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}&t=${Date.now()}`);
       const data = await response.json();
       setSatQuestion(data);
     } catch (error) {
