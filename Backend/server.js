@@ -18,8 +18,16 @@ app.get('/api/sat-question', async (req, res) => {
   let topicInstruction = "";
   
   if (category === 'math') {
-    topicInstruction = "Create a SAT Math question (Algebra, Geometry, or Advanced Math). Ensure the math notation is clear (e.g., use x^2 for square).";
-  } else if (category === 'writing') {
+  topicInstruction = `
+    Create a SAT Math question (Algebra, Advanced Math, or Problem Solving). 
+    CRITICAL INSTRUCTIONS for accuracy:
+    1. **Solve First**: Internally solve the problem step-by-step to find the exact numerical answer.
+    2. **Verified Options**: Create 4 options where EXACTLY ONE is the correct result of your calculation.
+    3. **Plausible Distractors**: The 3 wrong options must be common mistakes (e.g., sign errors, wrong operation) but NOT just random numbers.
+    4. **No Near-Misses**: Ensure the correct answer is 100% mathematically sound. Do not use approximations unless the question asks for it.
+    5. **Output**: Return a JSON with 'question', 'options', 'answer', and a 'step_by_step_explanation'.
+  `;
+} else if (category === 'writing') {
     topicInstruction = "Create a SAT Writing & Language question focusing on grammar, punctuation, or sentence structure.";
   } else {
     topicInstruction = "Create a SAT Reading question with a short passage (2-4 sentences) and a question about its purpose or meaning.";
