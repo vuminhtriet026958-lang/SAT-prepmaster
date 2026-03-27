@@ -24,12 +24,18 @@ app.get('/api/sat-question', async (req, res) => {
       1. Internal Solve: Verify calculations (e.g., $(-2)^2 = 4$).
       2. Format: Use LaTeX ($...$) for math.
       3. Fields: Provide 'question', 'options' (A, B, C, D), 'answer' (the letter), and 'explanation'.`;
+  } else if (category === 'writing') {
+    topicInstruction = `
+      Generate an SAT WRITING & LANGUAGE question. 
+      - Focus: Standard English Conventions (grammar, punctuation, sentence structure).
+      - Style: A professional or academic short paragraph with an underlined portion or a specific grammatical error to fix.
+      - Fields: 'passage' (the paragraph), 'question' (e.g., "Which choice best completes the sentence?"), 'options', 'answer', 'explanation'.`;
   } else {
     topicInstruction = `
-      Generate a SAT ${category} question.
-      1. Passage: Include a short academic text (field: 'passage').
-      2. Question: Based on the passage.
-      3. Fields: Provide 'passage', 'question', 'options', 'answer', and 'explanation'.`;
+      Generate an SAT READING question. 
+      - Focus: Information and Ideas (main purpose, tone, or evidence-based claims).
+      - Style: A self-contained excerpt from a scientific study, historical speech, or literary text.
+      - Fields: 'passage', 'question' (e.g., "Which statement best describes the main idea?"), 'options', 'answer', 'explanation'.`;
   }
 
   const prompt = `
@@ -57,15 +63,37 @@ app.get('/api/sat-question', async (req, res) => {
     
     let aiResponse = chatCompletion.choices[0]?.message?.content || "";
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+
     if (jsonMatch) {
-      res.json(JSON.parse(jsonMatch[0]));
+      try {
+        const parsedData = JSON.parse(jsonMatch[0]);
+        
+        // Trả về dữ liệu đã được chuẩn hóa để Frontend không bị lỗi
+        res.json({
+          passage: parsedData.passage || null,
+          question: parsedData.question || "No question generated.",
+          options: parsedData.options || ["A", "B", "C", "D"],
+          answer: parsedData.answer || "A",
+          step_by_step_explanation: parsedData.step_by_step_explanation || parsedData.explanation || "No explanation available."
+        });
+      } catch (e) {
+        console.error("JSON Parse Error:", e);
+        res.json({
+          passage: null,
+          question: "The AI generated a malformed response. Please click 'Next Question' to try again.",
+          options: ["A) Retry", "B) Retry", "C) Retry", "D) Retry"],
+          answer: "A",
+          step_by_step_explanation: "Lỗi định dạng dữ liệu từ AI."
+        });
+      }
     } else {
-      throw new Error("JSON not found");
+      throw new Error("JSON not found in AI response");
     }
   } catch (error) {
+    console.error("Global API Error:", error);
     res.status(500).json({ error: "Lỗi kết nối AI." });
   }
-});
+}); // Đây là dấu đóng hàm app.get chính xác
 // 3. API Tạo trọn bộ Quiz (Cho trang Create Quiz)
 app.post('/api/generate-quiz', async (req, res) => {
   const { subject, difficulty, count } = req.body;
