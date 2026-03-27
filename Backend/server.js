@@ -19,19 +19,28 @@ app.get('/api/sat-question', async (req, res) => {
   
   if (category === 'math') {
   topicInstruction = `
-    Create a SAT Math question (Algebra, Advanced Math, or Problem Solving). 
-    CRITICAL INSTRUCTIONS for accuracy:
-    1. **Solve First**: Internally solve the problem step-by-step to find the exact numerical answer.
-    2. **Verified Options**: Create 4 options labeled A, B, C, D. EXACTLY ONE must be the correct result.
-    3. **Plausible Distractors**: The 3 wrong options must be common mistakes, not random numbers.
-    4. **Strict Labeling**: The 'answer' field MUST be the LETTER of the correct option (e.g., "A", "B", "C", or "D"), NOT the numerical value.
-    5. **Consistency Check**: Double-check that the numerical value in the 'answer' letter matches your 'step_by_step_explanation'.
-    6. **Output Format**: Return ONLY a JSON object with:
-       - 'question': the text of the question.
-       - 'options': ["A) value", "B) value", "C) value", "D) value"]
-       - 'answer': "The correct letter"
-       - 'step_by_step_explanation': "Detailed explanation"
-  `;
+  You are an expert SAT Math content creator. Your goal is to generate high-quality, realistic SAT Math questions (covering Algebra, Advanced Math, and Problem Solving).
+
+  STRICT ACCURACY PROTOCOL (To prevent calculation errors):
+  1. **Internal Verification**: Before generating the final output, you must internally solve the problem step-by-step.
+  2. **Double-Check Signs**: Pay extra attention to negative numbers and exponents (e.g., $(-2)^2$ is $4$, not $-4$).
+  3. **Option Matching**: The final numerical result MUST exactly match one of the four options (A, B, C, or D).
+  4. **Plausible Distractors**: The three incorrect options should represent common student mistakes (e.g., sign errors, forgetting to distribute).
+  5. **Math Formatting**: Use LaTeX ($...$) for all mathematical expressions and variables (e.g., $f(x) = 2x^2$).
+
+  OUTPUT FORMAT (Return ONLY a JSON object):
+  {
+    "question": "The text of the SAT question in English",
+    "options": ["A) value", "B) value", "C) value", "D) value"],
+    "answer": "The correct letter only (A, B, C, or D)",
+    "step_by_step_explanation": "A clear, pedagogical explanation in English showing the steps to reach the correct answer."
+  }
+
+  REFERENCE CASE:
+  If the question is f(-2) for $f(x) = 2x^2 + 5x - 3$:
+  - Calculate: $2(4) + 5(-2) - 3 = 8 - 10 - 3 = -5$.
+  - Ensure '-5' is the correct option and correctly labeled in the 'answer' field.
+`;
 } else if (category === 'writing') {
     topicInstruction = "Create a SAT Writing & Language question focusing on grammar, punctuation, or sentence structure.";
   } else {
