@@ -56,10 +56,10 @@ app.get('/api/sat-question', async (req, res) => {
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.1-8b-instant',
-      temperature: 0.2,
+      model: 'llama-3.1-8b-instant', 
+      temperature: 0,      // <--- THAY THẾ: Chỉnh từ 0.2 về 0 để AI phản hồi nhanh nhất
+      max_tokens: 800      // <--- THÊM MỚI: Đảm bảo AI không bị ngắt quãng giữa chừng
     });
-    
     let aiResponse = chatCompletion.choices[0]?.message?.content || "";
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
 
