@@ -75,12 +75,12 @@ export default function Home() {
     setIsQuizGenerating(true);
     setQuizStatus('idle');
     try {
-      const response = await fetch("http://localhost:3010/api/generate-quiz", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, difficulty, count }),
-      });
-
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010'}/api/generate-quiz`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // Giữ nguyên các biến subject, difficulty, count của bạn ở đây
+    body: JSON.stringify({ subject, difficulty, count }),
+});
       const data = await response.json();
       if (data && data.questions) {
         setGeneratedQuiz(data.questions);
@@ -113,7 +113,7 @@ export default function Home() {
   const fetchAIQuestion = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3010/api/sat-question");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010'}/api/sat-question`);
       const data = await response.json();
       setSatQuestion(data);
     } catch (error) {
