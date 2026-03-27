@@ -1,0 +1,66 @@
+/* public/style.css */
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #f8fafc;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+#gameScreen {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.board {
+    display: grid;
+    gap: 2px;
+    background: #cbd5e1;
+    border: 4px solid #1e293b;
+    border-radius: 8px;
+    margin: 20px auto;
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cell:hover { background: #f1f5f9; }
+.cell.selected { background: #e0f2fe; box-shadow: inset 0 0 0 2px #3b82f6; }
+.cell.given { font-weight: 800; color: #1e293b; background: #f8fafc; }
+.cell.user { color: #2563eb; }
+.cell.error { background: #fee2e2; color: #ef4444; }
+
+/* Đường kẻ đậm cho các box Sudoku */
+.cell-edge-r { border-right: 3px solid #1e293b; }
+.cell-edge-b { border-bottom: 3px solid #1e293b; }
+
+#numberPad {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.num-btn {
+    padding: 12px;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.num-btn:hover { background: #2563eb; }
