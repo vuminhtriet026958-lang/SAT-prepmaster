@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 // 1. Khởi tạo Groq (Giữ API Key của bạn)
-const apiKey = process.env.GROQ_API_KEY;git status
+const apiKey = process.env.GROQ_API_KEY;
 
 // 2. API Tạo câu hỏi đơn lẻ (Cho trang Practice)
 app.get('/api/sat-question', async (req, res) => {
