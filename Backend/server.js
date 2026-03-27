@@ -56,7 +56,7 @@ app.get('/api/sat-question', async (req, res) => {
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       temperature: 0.2,
     });
     
@@ -102,7 +102,7 @@ app.post('/api/generate-quiz', async (req, res) => {
   try {
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       temperature: 0.4,
     });
     const jsonMatch = chatCompletion.choices[0]?.message?.content.match(/\{[\s\S]*\}/);
@@ -125,7 +125,7 @@ app.post('/api/ai-tutor/chat', async (req, res) => {
         },
         { role: 'user', content: message }
       ],
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
     });
 
     const aiResponse = completion.choices[0].message.content;
