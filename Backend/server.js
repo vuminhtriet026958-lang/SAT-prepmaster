@@ -18,11 +18,12 @@ app.get('/api/sat-question', async (req, res) => {
   
   if (category === 'math') {
     topicInstruction = `
-      Generate an SAT Math question. 
-      - CRITICAL: Calculate step-by-step internally first. 
-      - FORMAT: Use plain text only. NO dollar signs ($) and NO LaTeX. 
-      - EXPLAIN: The explanation must be in Vietnamese.
-      - FIELDS: 'question', 'options' (A, B, C, D), 'answer' (letter only), 'step_by_step_explanation'.`;
+      Generate a SIMPLE SAT Math question. 
+      - TYPE: Heart of Algebra or Passport to Advanced Math.
+      - FORMAT: Use plain text only. STRICTLY NO dollar signs ($) and NO LaTeX. 
+      - CONTENT: One question, 4 options, 1 correct answer letter.
+      - EXPLAIN: Short Vietnamese explanation (max 2 sentences).
+      - FIELDS: 'question', 'options', 'answer', 'step_by_step_explanation'.`;
   } else if (category === 'writing') {
     topicInstruction = `
       Generate an SAT WRITING & LANGUAGE question. 
