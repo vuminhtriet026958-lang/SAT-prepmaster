@@ -9,7 +9,7 @@ export function Founders() {
       name: " Minh Triết B7",
       role: "Lead Developer / Founder",
       description: "Chịu trách nhiệm chính về logic AI và hệ thống vận hành của SAT PrepMaster.",
-      image: "/picture/triet.jpg", // Thay bằng link ảnh thật
+      image: "/picture/triet.png", // Thay bằng link ảnh thật
       color: "bg-blue-500"
     },
     {
@@ -23,7 +23,7 @@ export function Founders() {
       name: "Bùi Quân B7",
       role: "UI/UX Designer",
       description: "Thiết kế giao diện người dùng, đảm bảo web luôn mượt mà và dễ sử dụng.",
-      image: "/picture/tuat2.jpg", // Thay bằng link ảnh thật
+      image: "/picture/tuat2.png", // Thay bằng link ảnh thật
       color: "bg-emerald-500"
     }
   ];
