@@ -9,8 +9,9 @@ import { Entertainment } from '@/components/pages/Entertainment';
 import { Profile } from '@/components/pages/Profile';
 import { QuizPlayer } from '@/components/pages/QuizPlayer';
 import { Button } from '@/components/ui/button';
+import { Founders } from '@/components/pages/Founders';
 
-type Page = 'dashboard' | 'practice' | 'ai-tutor' | 'create-quiz' | 'entertainment' | 'profile';
+type Page = 'dashboard' | 'practice' | 'ai-tutor' | 'create-quiz' | 'entertainment' | 'profile' | 'founders';
 
 type UserData = {
   name: string;
@@ -173,25 +174,29 @@ export default function Home() {
         return <Entertainment userData={userData} onStartPractice={fetchAIQuestion} satQuestion={satQuestion} isLoading={isLoading} setSatQuestion={setSatQuestion} />;
       
       case 'profile':
-        return <Profile userData={userData} />;
-      
-      default:
-        return null;
+      return <Profile userData={userData} />;
+
+    case 'founders': // Đảm bảo có dấu hai chấm ở cuối dòng này
+      return <Founders />; // Dòng này phải thụt lề vào trong
+
+    default:
+      return null;
     }
   };
 
   return (
     <MainLayout
-      currentPage={currentPage}
-      onPageChange={(page: any) => {
-        setCurrentPage(page);
-        if (page !== 'create-quiz') setQuizStatus('idle');
-      }}
-      userData={userData}
-    >
-      <div className="container mx-auto py-6">
-        {renderPage()}
-      </div>
-    </MainLayout>
+  currentPage={currentPage}
+  onPageChange={(page: any) => {
+    setCurrentPage(page);
+    if (page !== 'create-quiz') setQuizStatus('idle');
+  }}
+  userData={userData}
+>
+  {/* Thay đổi class ở đây để nội dung không bị lệch */}
+  <div className="container mx-auto py-6 px-4 md:px-8 max-w-7xl transition-all duration-300">
+    {renderPage()}
+  </div>
+</MainLayout>
   );
 }
