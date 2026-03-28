@@ -25,7 +25,7 @@ app.get('/api/sat-question', async (req, res) => {
   "Circle equations in XY-plane",
   "Exponential growth and decay"
 ];
-const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+const randomTopic = mathSubTopics[Math.floor(Math.random() * mathSubTopics.length)];
 const randomSeed = Math.floor(Math.random() * 10000);
   let topicInstruction = "";
   
