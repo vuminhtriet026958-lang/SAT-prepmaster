@@ -17,17 +17,35 @@ app.use((req, res, next) => {
 // --- 1. API Tạo câu hỏi đơn lẻ (Cho trang Practice) ---
 app.get('/api/sat-question', async (req, res) => {
   const category = req.query.category || 'math';
+  const mathSubTopics = [
+  "Linear equations with two variables", 
+  "Quadratic functions and graphs", 
+  "Ratios and Proportions", 
+  "Right triangle trigonometry", 
+  "Circle equations in XY-plane",
+  "Exponential growth and decay"
+];
+const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+const randomSeed = Math.floor(Math.random() * 10000);
   let topicInstruction = "";
   
-  if (category === 'math') {
+ if (category === 'math') {
     topicInstruction = `
-      Generate a SIMPLE SAT Math question. 
-      - TYPE: Heart of Algebra or Passport to Advanced Math.
-      - FORMAT: Use plain text only. STRICTLY NO dollar signs ($) and NO LaTeX. 
-      - CONTENT: One question, 4 options, 1 correct answer letter.
-      - EXPLAIN: Short Vietnamese explanation (max 2 sentences).
-      - FIELDS: 'question', 'options', 'answer', 'step_by_step_explanation'.`;
-  } else if (category === 'writing') {
+      Generate a UNIQUE SAT Math question.
+      - TOPIC: ${randomTopic} (Random Seed: ${randomSeed}).
+      - TYPE: Heart of Algebra, Problem Solving and Data Analysis, or Passport to Advanced Math.
+      - REQUIREMENT: Create new numbers and a unique real-world context. Ensure the math logic is sound.
+      - FORMAT: Use plain text only. No LaTeX, no $ signs. Use ^ for powers (e.g., x^2).
+      - OUTPUT: Return ONLY a strictly valid JSON object. No conversational text.
+      - JSON STRUCTURE:
+      {
+        "passage": null,
+        "question": "English text of the question",
+        "options": ["A) ", "B) ", "C) ", "D) "],
+        "answer": "A",
+        "step_by_step_explanation": "Giải thích ngắn gọn bằng tiếng Việt (max 2 sentences)."
+      }`;
+} else if (category === 'writing') {
     topicInstruction = `
       Generate an SAT WRITING & LANGUAGE question. 
       - Focus: Standard English Conventions (grammar, punctuation).
@@ -142,4 +160,11 @@ app.post('/api/ai-tutor/chat', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3010;
-app.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });
+
+// Gán việc lắng nghe vào biến 'server' để cấu hình thêm
+const server = app.listen(PORT, () => { 
+    console.log(`Server running on port ${PORT}`); 
+});
+
+// Tăng thời gian chờ lên 30 giây để AI kịp giải toán
+server.timeout = 30000;

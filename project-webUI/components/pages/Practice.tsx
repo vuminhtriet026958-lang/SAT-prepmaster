@@ -34,26 +34,27 @@ export function Practice({
   }, [currentTab]);
 
   const handleAnswerSelect = (index: number) => {
-    if (showFeedback || !satQuestion) return;
-    
-    setSelectedAnswer(index);
-    setShowFeedback(true);
+  if (showFeedback || !satQuestion || isLoading) return; // Chặn bấm khi đang load
+  
+  setSelectedAnswer(index);
+  setShowFeedback(true);
 
-    const labels = ['A', 'B', 'C', 'D'];
-    const selectedLabel = labels[index];
-    
-    // So khớp với trường 'answer' từ Backend (ví dụ: "A")
-    const isCorrect = selectedLabel === satQuestion.answer?.toUpperCase();
+  const labels = ['A', 'B', 'C', 'D'];
+  const selectedLabel = labels[index];
+  
+  // CHUẨN HÓA: Lấy chữ cái đầu tiên của câu trả lời từ AI để so sánh
+  const correctLetter = satQuestion.answer?.trim().charAt(0).toUpperCase();
+  const isCorrect = selectedLabel === correctLetter;
 
-    if (!isCorrect) {
-      const newWrongCount = stats.wrong + 1;
-      setStats((prev) => ({ ...prev, wrong: newWrongCount }));
-      onWrongAnswer(newWrongCount);
-    } else {
-      setStats((prev) => ({ ...prev, correct: prev.correct + 1 }));
-      onCorrect(); 
-    }
-  };
+  if (!isCorrect) {
+    const newWrongCount = stats.wrong + 1;
+    setStats((prev) => ({ ...prev, wrong: newWrongCount }));
+    onWrongAnswer(newWrongCount);
+  } else {
+    setStats((prev) => ({ ...prev, correct: prev.correct + 1 }));
+    onCorrect(); 
+  }
+};
 
   const handleNext = () => {
     setSelectedAnswer(null);
@@ -116,9 +117,7 @@ export function Practice({
 
             {/* 2. CÂU HỎI */}
             <div className="mb-8">
-              <h2 className="text-xl font-bold text-gray-900 leading-tight whitespace-pre-line">
-  {satQuestion.question}
-</h2>
+              <h2 className="..."> {satQuestion.question.replace(/\\\(|\\\)/g, '')} </h2>
             </div>
 
             {/* 3. CÁC LỰA CHỌN ĐÁP ÁN */}
@@ -169,9 +168,13 @@ export function Practice({
                     {satQuestion.step_by_step_explanation || satQuestion.explanation}
                   </p>
                 </div>
-                <Button onClick={handleNext} className="w-full bg-blue-600 hover:bg-blue-700 h-14 text-lg font-bold rounded-xl shadow-lg transition-transform active:scale-95">
-                  Next Question →
-                </Button>
+                <Button 
+  onClick={handleNext} 
+  disabled={isLoading} // KHÔNG cho nhấn khi đang load
+  className="..."
+>
+  {isLoading ? 'Loading...' : 'Next Question →'}
+</Button>
               </div>
             )}
           </div>

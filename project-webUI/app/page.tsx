@@ -99,18 +99,32 @@ export default function Home() {
   };
 
   const fetchAIQuestion = async (category = 'math') => {
-    setIsLoading(true);
-    try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
-      const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}&t=${Date.now()}`);
-      const data = await response.json();
+  // 1. CHỐT CHẶN: Nếu đang tải thì tuyệt đối không cho gọi thêm
+  if (isLoading) return; 
+
+  setIsLoading(true);
+  try {
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
+    
+    // 2. ANTI-CACHE: Thêm t=${Date.now()} để trình duyệt luôn lấy câu mới
+    const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}&t=${Date.now()}`);
+    
+    if (!response.ok) throw new Error("Server Error");
+
+    const data = await response.json();
+    
+    // 3. VALIDATION: Đảm bảo data trả về có nội dung
+    if (data && data.question) {
       setSatQuestion(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    console.error("AI Fetch Error:", error);
+    // Có thể set một câu hỏi giả định báo lỗi ở đây nếu muốn
+  } finally {
+    // Đợi 500ms rồi mới tắt Loading để tránh spam click quá nhanh
+    setTimeout(() => setIsLoading(false), 500);
+  }
+};
 
   const handleCorrectAnswer = () => {
     setUserData((prev) => ({
