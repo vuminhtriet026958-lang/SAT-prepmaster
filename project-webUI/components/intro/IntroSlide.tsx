@@ -28,10 +28,16 @@ const letter = {
 
 export default function IntroFlow({ onStart }: IntroSlideProps) {
   const [currentStep, setCurrentStep] = useState(1); 
+  const slides = [
+  { title: "Chào mừng", content: "..." },
+  { title: "Tính năng", content: "..." },
+  { title: "Đội ngũ", content: "..." },
+];
+const totalSteps = slides.length;
 
   const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep < totalSteps) {
+      setCurrentStep(prev => prev + 1);
     } else {
       // Nếu đã ở slide cuối cùng (Founders) thì gọi hàm onStart để vào Dashboard
       onStart();
