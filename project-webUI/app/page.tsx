@@ -10,7 +10,8 @@ import { Profile } from '@/components/pages/Profile';
 import { QuizPlayer } from '@/components/pages/QuizPlayer';
 import { Button } from '@/components/ui/button';
 import { Founders } from '@/components/pages/Founders';
-import IntroFlow from "@/components/intro/IntroSlide";
+// Chèn phần import Intro và Animation
+import  IntroFlow  from "@/components/intro/IntroSlide";
 import { AnimatePresence, motion } from "framer-motion";
 
 type Page = 'dashboard' | 'practice' | 'ai-tutor' | 'create-quiz' | 'entertainment' | 'profile' | 'founders';
@@ -30,8 +31,11 @@ type UserData = {
 type QuizStatus = 'idle' | 'playing' | 'finished';
 
 export default function Home() {
+  // --- PHẦN THÊM MỚI: State kiểm soát Intro ---
+  const [showIntro, setShowIntro] = useState(true);
+
+  // --- GIỮ NGUYÊN TOÀN BỘ LOGIC CŨ CỦA BẠN ---
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-  const [showIntro, setShowIntro] = useState(true)
   const [userData, setUserData] = useState<UserData>({
     name: 'Student',
     level: 5,
@@ -63,7 +67,7 @@ export default function Home() {
       }, 60000);
     }
     return () => clearInterval(timer);
-  }, [currentPage, userData.entertainmentMinutes]); // Thêm dependency để logic đếm ngược chuẩn hơn
+  }, [currentPage, userData.entertainmentMinutes]);
 
   const handleGenerateQuiz = async (subject: string, difficulty: string, count: number) => {
     setIsQuizGenerating(true);
@@ -103,32 +107,22 @@ export default function Home() {
   };
 
   const fetchAIQuestion = async (category = 'math') => {
-  // 1. CHỐT CHẶN: Nếu đang tải thì tuyệt đối không cho gọi thêm
-  if (isLoading) return; 
-
-  setIsLoading(true);
-  try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
-    
-    // 2. ANTI-CACHE: Thêm t=${Date.now()} để trình duyệt luôn lấy câu mới
-    const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}&t=${Date.now()}`);
-    
-    if (!response.ok) throw new Error("Server Error");
-
-    const data = await response.json();
-    
-    // 3. VALIDATION: Đảm bảo data trả về có nội dung
-    if (data && data.question) {
-      setSatQuestion(data);
+    if (isLoading) return; 
+    setIsLoading(true);
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
+      const response = await fetch(`${API_BASE_URL}/api/sat-question?category=${category}&t=${Date.now()}`);
+      if (!response.ok) throw new Error("Server Error");
+      const data = await response.json();
+      if (data && data.question) {
+        setSatQuestion(data);
+      }
+    } catch (error) {
+      console.error("AI Fetch Error:", error);
+    } finally {
+      setTimeout(() => setIsLoading(false), 500);
     }
-  } catch (error) {
-    console.error("AI Fetch Error:", error);
-    // Có thể set một câu hỏi giả định báo lỗi ở đây nếu muốn
-  } finally {
-    // Đợi 500ms rồi mới tắt Loading để tránh spam click quá nhanh
-    setTimeout(() => setIsLoading(false), 500);
-  }
-};
+  };
 
   const handleCorrectAnswer = () => {
     setUserData((prev) => ({
@@ -142,7 +136,6 @@ export default function Home() {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard onPageChange={setCurrentPage} userData={userData} onStartPractice={() => setCurrentPage('practice')} isLoading={isLoading} />;
-      
       case 'practice':
         return (
           <Practice 
@@ -153,10 +146,8 @@ export default function Home() {
             isLoading={isLoading}
           />
         );
-
       case 'ai-tutor':
-        return <AITutor />; // Giờ đây AITutor đã có case riêng và sẽ hiển thị được
-
+        return <AITutor />;
       case 'create-quiz':
         if (quizStatus === 'playing') {
           return <QuizPlayer questions={generatedQuiz} onFinish={handleFinishQuiz} />;
@@ -172,34 +163,54 @@ export default function Home() {
           );
         }
         return <CreateQuiz onGenerateQuiz={handleGenerateQuiz} isLoading={isQuizGenerating} />;
-
       case 'entertainment':
         return <Entertainment userData={userData} onStartPractice={fetchAIQuestion} satQuestion={satQuestion} isLoading={isLoading} setSatQuestion={setSatQuestion} />;
-      
       case 'profile':
-      return <Profile userData={userData} />;
-
-    case 'founders': // Đảm bảo có dấu hai chấm ở cuối dòng này
-      return <Founders />; // Dòng này phải thụt lề vào trong
-
-    default:
-      return null;
+        return <Profile userData={userData} />;
+      case 'founders':
+        return <Founders />;
+      default:
+        return null;
     }
   };
 
+  // --- PHẦN HIỂN THỊ CÓ CHÈN INTRO ---
   return (
-    <MainLayout
-  currentPage={currentPage}
-  onPageChange={(page: any) => {
-    setCurrentPage(page);
-    if (page !== 'create-quiz') setQuizStatus('idle');
-  }}
-  userData={userData}
->
-  {/* Thay đổi class ở đây để nội dung không bị lệch */}
-  <div className="container mx-auto py-6 px-4 md:px-8 max-w-7xl transition-all duration-300">
-    {renderPage()}
-  </div>
-</MainLayout>
+    <AnimatePresence mode="wait">
+      {showIntro ? (
+        // Hiển thị IntroFlow trước
+        <motion.div 
+          key="intro" 
+          initial={{ opacity: 1 }} 
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Giả định IntroFlow của bạn có nhận props onStart để tắt Intro */}
+          <IntroFlow onStart={() => setShowIntro(false)} />
+        </motion.div>
+      ) : (
+        // Sau khi xong Intro mới hiện MainLayout và App chính
+        <motion.div 
+          key="main-app" 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="min-h-screen"
+        >
+          <MainLayout
+            currentPage={currentPage}
+            onPageChange={(page: any) => {
+              setCurrentPage(page);
+              if (page !== 'create-quiz') setQuizStatus('idle');
+            }}
+            userData={userData}
+          >
+            <div className="container mx-auto py-6 px-4 md:px-8 max-w-7xl transition-all duration-300">
+              {renderPage()}
+            </div>
+          </MainLayout>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
