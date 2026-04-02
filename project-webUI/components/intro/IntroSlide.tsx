@@ -29,9 +29,9 @@ const letter = {
 export default function IntroFlow({ onStart }: IntroSlideProps) {
   const [currentStep, setCurrentStep] = useState(1); 
  const slides = [
-    { title: "PREPMASTER", subtitle: "Shaping the Future", image: "logo-small.png", description: "How Artificial Intelligence help you learn SAT" },
-    { title: "PRACTICE", subtitle: "Adaptive Learning", image: "/logo-small.png", description: "Thousands of SAT questions updated daily" },
-    { title: "FOUNDERS", subtitle: "Meet the Team", image: "/team-photo.png", description: "Dedicated to your academic success" },
+    { title: "PREPMASTER", subtitle: "Shaping the Future", image: "project-webUI/public/picture/logo-small.png", description: "How Artificial Intelligence help you learn SAT" },
+    { title: "PRACTICE", subtitle: "Adaptive Learning", image: "/project-webUI/public/picture/logo-small.png", description: "Thousands of SAT questions updated daily" },
+    { title: "FOUNDERS", subtitle: "Meet the Team", image: "/project-webUI/public/picture/logo-small.png", description: "Dedicated to your academic success" },
   ];
 const totalSteps = slides.length;
 
