@@ -57,7 +57,7 @@ const totalSteps = slides.length;
       {/* Header Bar */}
       <div className="absolute top-0 left-0 w-full h-16 bg-[#1a1a1a] flex items-center px-6 justify-between text-white z-10">
         <div className="flex items-center gap-2">
-          <img src="/logo-small.png" alt="Logo" className="w-8 h-8" />
+          <img src="/picture/logo-small.png" alt="Logo" className="w-8 h-8" />
           <span className="font-bold text-sm tracking-widest">SAT-PREPMASTER</span>
         </div>
       </div>
@@ -119,13 +119,13 @@ const totalSteps = slides.length;
             transition={{ duration: 1 }}
           >
             <motion.img
-              src="/robot-bg.png" // Thay bằng link ảnh robot của bạn
-              alt="Robot AI"
-              className="w-full h-full object-cover opacity-80"
-              animate={{ scale: [1, 1.05, 1] }} // Hiệu ứng zoom nhẹ lặp lại
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            />
-          </motion.div>
+    src="/picture/ai-robot.png"  // Đường dẫn đến ảnh AI bạn đã tải lên
+    alt="Robot AI Large"
+    className="w-full h-full object-cover opacity-80"
+    animate={{ scale: [1, 1.05, 1] }}
+    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+  />
+</motion.div>
         </div>
       </div>
 
