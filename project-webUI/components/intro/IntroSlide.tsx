@@ -28,11 +28,11 @@ const letter = {
 
 export default function IntroFlow({ onStart }: IntroSlideProps) {
   const [currentStep, setCurrentStep] = useState(1); 
-  const slides = [
-  { title: "Chào mừng", content: "..." },
-  { title: "Tính năng", content: "..." },
-  { title: "Đội ngũ", content: "..." },
-];
+ const slides = [
+    { title: "PREPMASTER", subtitle: "Shaping the Future", image: "/sat-fire-logo.png", description: "How Artificial Intelligence help you learn SAT" },
+    { title: "PRACTICE", subtitle: "Adaptive Learning", image: "/practice-intro.png", description: "Thousands of SAT questions updated daily" },
+    { title: "FOUNDERS", subtitle: "Meet the Team", image: "/team-photo.png", description: "Dedicated to your academic success" },
+  ];
 const totalSteps = slides.length;
 
   const handleNext = () => {
@@ -60,8 +60,10 @@ const totalSteps = slides.length;
         <div className="flex flex-col space-y-4">
           {/* Logo SAT Ngọn lửa với hiệu ứng nhịp thở (Pulse) và trôi nổi (Float) */}
           <motion.img
-            src="/sat-fire-logo.png" // Thay bằng link ảnh logo xanh của bạn
-            alt="SAT Fire Logo"
+          key={`logo-${currentStep}`}
+          src={slides[currentStep - 1].image}
+          alt="Intro Image"
+            
             className="w-64 md:w-80 object-contain"
             animate={{ 
               y: [0, -15, 0],
@@ -72,26 +74,30 @@ const totalSteps = slides.length;
 
           {/* Chữ PREPMASTER xuất hiện từng ký tự */}
           <motion.h1 
-            className="text-6xl md:text-8xl font-black text-black tracking-tighter"
-            variants={sentence}
-            initial="hidden"
-            animate="visible"
-          >
-            {"PREPMASTER".split("").map((char, index) => (
-              <motion.span key={index} variants={letter}>
-                {char}
-              </motion.span>
-            ))}
-          </motion.h1>
+  key={`title-${currentStep}`} // Thêm dòng này để chạy lại hiệu ứng khi đổi slide
+  className="text-6xl md:text-8xl font-black text-black tracking-tighter uppercase"
+  variants={sentence}
+  initial="hidden"
+  animate="visible"
+>
+  {/* Thay "PREPMASTER" bằng biến slides[currentStep - 1].title */}
+  {slides[currentStep - 1].title.split("").map((char, index) => (
+    <motion.span key={index} variants={letter}>
+      {char}
+    </motion.span>
+  ))}
+</motion.h1>
 
           <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            className="text-2xl text-gray-400 font-medium"
-          >
-            Shaping the Future
-          </motion.p>
+  key={`desc-${currentStep}`} // Thêm key để hiệu ứng opacity chạy lại khi đổi slide
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ delay: 0.5 }} // Giảm delay một chút để hiện ra cùng lúc với chữ tiêu đề
+  className="text-2xl text-gray-400 font-medium"
+>
+  {/* Lấy nội dung từ cột 'content' trong mảng slides của bạn */}
+  {slides[currentStep - 1].description} 
+</motion.p>
         </div>
 
         {/* Cột Phải: Ảnh Robot với khung bo góc đặc biệt */}
