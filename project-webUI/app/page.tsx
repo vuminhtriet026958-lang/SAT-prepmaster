@@ -10,6 +10,8 @@ import { Profile } from '@/components/pages/Profile';
 import { QuizPlayer } from '@/components/pages/QuizPlayer';
 import { Button } from '@/components/ui/button';
 import { Founders } from '@/components/pages/Founders';
+import IntroFlow from "@/components/intro/IntroSlide";
+import { AnimatePresence, motion } from "framer-motion";
 
 type Page = 'dashboard' | 'practice' | 'ai-tutor' | 'create-quiz' | 'entertainment' | 'profile' | 'founders';
 
@@ -29,6 +31,7 @@ type QuizStatus = 'idle' | 'playing' | 'finished';
 
 export default function Home() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [showIntro, setShowIntro] = useState(true)
   const [userData, setUserData] = useState<UserData>({
     name: 'Student',
     level: 5,
