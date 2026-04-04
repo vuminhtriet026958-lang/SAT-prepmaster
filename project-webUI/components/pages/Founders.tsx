@@ -29,10 +29,11 @@ export function Founders() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 min-h-screen p-8 bg-gray-50 dark:bg-[#020617] transition-colors duration-500">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-extrabold text-gray-900">Đội Ngũ Sáng Lập</h1>
-        <p className="text-gray-500 max-w-2xl mx-auto">
+        {/* CHỖ CẦN SỬA: Thêm dark:text-white cho tiêu đề chính */}
+        <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white transition-colors">Đội Ngũ Sáng Lập</h1>
+        <p className="text-gray-500 dark:text-slate-400 max-w-2xl mx-auto transition-colors">
           Chúng mình là nhóm học sinh đam mê công nghệ, với mục tiêu xây dựng một nền tảng học tập SAT thông minh và miễn phí cho mọi người.
         </p>
       </div>

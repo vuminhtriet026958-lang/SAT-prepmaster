@@ -40,11 +40,11 @@ export function MainLayout({
           - Bỏ ml-64 cố định. 
           - Dùng transition-all để co giãn mượt mà theo Sidebar.
       */}
-      <main className="flex-1 overflow-auto transition-all duration-300">
-        <div className="p-8 max-w-6xl mx-auto">
-          {children}
-        </div>
-      </main>
+      <main className="flex-1 bg-gray-50 dark:bg-[#020617] min-h-screen transition-colors duration-500">
+   <div className="max-w-7xl mx-auto">
+      {children}
+   </div>
+</main>
     </div>
   );
 }

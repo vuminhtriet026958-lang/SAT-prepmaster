@@ -108,13 +108,15 @@ export function Practice({
   return (
     <div className="space-y-6">
       {/* Header & Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-slate-800">
         {(['math', 'reading', 'writing'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setCurrentTab(tab)}
             className={`px-6 py-3 font-medium capitalize border-b-2 transition-colors ${
-              currentTab === tab ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-600'
+              currentTab === tab 
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400' 
+                : 'border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200'
             }`}
           >
             {tab}
@@ -124,35 +126,35 @@ export function Practice({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 bg-green-50 text-center border-0 shadow-sm">
-          <div className="text-2xl font-bold text-green-600">{stats.correct}</div>
-          <p className="text-xs text-gray-500 uppercase tracking-wider">Correct</p>
+        <Card className="p-4 bg-green-50 dark:bg-green-900/20 text-center border-0 shadow-sm transition-colors">
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.correct}</div>
+          <p className="text-xs text-gray-500 dark:text-slate-500 uppercase tracking-wider">Correct</p>
         </Card>
-        <Card className="p-4 bg-red-50 text-center border-0 shadow-sm">
-          <div className="text-2xl font-bold text-red-600">{stats.wrong}</div>
-          <p className="text-xs text-gray-500 uppercase tracking-wider">Wrong</p>
+        <Card className="p-4 bg-red-50 dark:bg-red-900/20 text-center border-0 shadow-sm transition-colors">
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.wrong}</div>
+          <p className="text-xs text-gray-500 dark:text-slate-500 uppercase tracking-wider">Wrong</p>
         </Card>
-        <Card className="p-4 bg-blue-50 text-center border-0 shadow-sm">
-          <div className="text-2xl font-bold text-blue-600">
+        <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 text-center border-0 shadow-sm transition-colors">
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {stats.correct + stats.wrong > 0 ? Math.round((stats.correct / (stats.correct + stats.wrong)) * 100) : 0}%
           </div>
-          <p className="text-xs text-gray-500 uppercase tracking-wider">Accuracy</p>
+          <p className="text-xs text-gray-500 dark:text-slate-500 uppercase tracking-wider">Accuracy</p>
         </Card>
       </div>
 
       {/* Main Question Area */}
-      <Card className="p-8 bg-white border border-gray-200 shadow-sm min-h-[450px] relative">
+      <Card className="p-8 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-sm min-h-[450px] relative transition-colors">
         {isLoading || !satQuestion ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-gray-400">AI is generating your {currentTab} challenge...</p>
+            <p className="text-gray-400 dark:text-slate-500">AI is generating your {currentTab} challenge...</p>
           </div>
         ) : (
           <div className="animate-in fade-in duration-500">
-            {/* 1. HIỂN THỊ ĐOẠN VĂN (Cho Reading/Writing) */}
+            {/* 1. HIỂN THỊ ĐOẠN VĂN */}
             {satQuestion.passage && satQuestion.passage !== "null" && (
-              <div className="mb-6 p-5 bg-slate-50 border-l-4 border-blue-500 rounded-r-xl shadow-sm">
-                <p className="text-gray-700 leading-relaxed italic text-sm md:text-base">
+              <div className="mb-6 p-5 bg-slate-50 dark:bg-slate-800/50 border-l-4 border-blue-500 rounded-r-xl shadow-sm">
+                <p className="text-gray-700 dark:text-slate-300 leading-relaxed italic text-sm md:text-base">
                   {satQuestion.passage}
                 </p>
               </div>
@@ -160,7 +162,9 @@ export function Practice({
 
             {/* 2. CÂU HỎI */}
             <div className="mb-8">
-              <h2 className="..."> {satQuestion.question.replace(/\\\(|\\\)/g, '')} </h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white leading-snug"> 
+                {satQuestion.question.replace(/\\\(|\\\)/g, '')} 
+              </h2>
             </div>
 
             {/* 3. CÁC LỰA CHỌN ĐÁP ÁN */}
@@ -179,15 +183,17 @@ export function Practice({
                     className={`w-full p-4 text-left rounded-xl border-2 transition-all flex items-center ${
                       showFeedback 
                         ? isCorrect 
-                          ? 'border-green-500 bg-green-50 text-green-700' 
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
                           : isSelected 
-                            ? 'border-red-500 bg-red-50 text-red-700' 
-                            : 'border-gray-100 text-gray-400 opacity-50'
-                        : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+                            ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400' 
+                            : 'border-gray-100 dark:border-slate-800 text-gray-400 dark:text-slate-600 opacity-50'
+                        : 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                     }`}
                   >
-                    <span className={`w-8 h-8 flex items-center justify-center rounded-full mr-4 border font-bold ${
-                      showFeedback && isCorrect ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-300'
+                    <span className={`w-8 h-8 flex items-center justify-center rounded-full mr-4 border font-bold transition-colors ${
+                      showFeedback && isCorrect 
+                        ? 'bg-green-500 text-white border-green-500' 
+                        : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-300 dark:border-slate-600'
                     }`}>
                       {labels[index]}
                     </span>
@@ -197,13 +203,13 @@ export function Practice({
               })}
             </div>
 
-            {/* 4. GIẢI THÍCH (Bằng Tiếng Việt theo Prompt) */}
+            {/* 4. GIẢI THÍCH */}
             {showFeedback && (
               <div className="animate-in slide-in-from-bottom-4 duration-300">
                 <div className={`p-6 rounded-xl mb-6 border-0 ${
                   selectedAnswer !== null && ['A','B','C','D'][selectedAnswer] === satQuestion.answer 
-                    ? 'bg-green-100/50 text-green-900' 
-                    : 'bg-red-100/50 text-red-900'
+                    ? 'bg-green-100/50 dark:bg-green-900/40 text-green-900 dark:text-green-100' 
+                    : 'bg-red-100/50 dark:bg-red-900/40 text-red-900 dark:text-red-100'
                 }`}>
                   <h4 className="font-bold text-lg mb-2">
                     {selectedAnswer !== null && ['A','B','C','D'][selectedAnswer] === satQuestion.answer ? '✨ Tuyệt vời!' : '📚 Cần xem lại'}
@@ -213,17 +219,17 @@ export function Practice({
                   </p>
                 </div>
                 <Button 
-  onClick={handleNext} 
-  disabled={isLoading} // KHÔNG cho nhấn khi đang load
-  className="..."
->
-  {isLoading ? 'Loading...' : 'Next Question →'}
-</Button>
+                  onClick={handleNext} 
+                  disabled={isLoading}
+                  className="w-full py-6 text-lg font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-xl shadow-lg transition-all"
+                >
+                  {isLoading ? 'AI đang soạn đề...' : 'Next Question →'}
+                </Button>
               </div>
             )}
           </div>
         )}
       </Card>
     </div>
-  );
+);
 }

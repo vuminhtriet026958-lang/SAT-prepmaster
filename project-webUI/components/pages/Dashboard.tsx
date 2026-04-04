@@ -23,25 +23,25 @@ export function Dashboard({
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Level Card */}
-        <Card className="p-6 bg-blue-50 border-0 shadow-sm dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
+        <Card className="p-6 bg-blue-50 border-0 shadow-sm !dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
           <div className="text-sm text-gray-600 dark:text-slate-400 font-medium mb-2">Level</div>
           <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{userData.level}</div>
         </Card>
 
         {/* Accuracy Card */}
-        <Card className="p-6 bg-green-50 border-0 shadow-sm dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
+        <Card className="p-6 bg-green-50 border-0 shadow-sm !dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
           <div className="text-sm text-gray-600 dark:text-slate-400 font-medium mb-2">Accuracy</div>
           <div className="text-3xl font-bold text-green-600 dark:text-green-400">{userData.accuracy}%</div>
         </Card>
 
         {/* Streak Card */}
-        <Card className="p-6 bg-orange-50 border-0 shadow-sm dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
+        <Card className="p-6 bg-orange-50 border-0 shadow-sm !dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
           <div className="text-sm text-gray-600 dark:text-slate-400 font-medium mb-2">Streak</div>
           <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{userData.streak}</div>
         </Card>
 
         {/* Quizzes Card */}
-        <Card className="p-6 bg-purple-50 border-0 shadow-sm dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
+        <Card className="p-6 bg-purple-50 border-0 shadow-sm !dark:bg-slate-900 dark:border dark:border-slate-800 transition-all">
           <div className="text-sm text-gray-600 dark:text-slate-400 font-medium mb-2">Quizzes</div>
           <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{userData.quizzesCompleted}</div>
         </Card>
