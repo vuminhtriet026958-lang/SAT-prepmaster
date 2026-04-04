@@ -180,48 +180,46 @@ const [isClient, setIsClient] = useState(false);
   };
 
   // --- PHẦN HIỂN THỊ CÓ CHÈN INTRO ---
+ // --- PHẦN HIỂN THỊ CÓ CHÈN INTRO ---
   return (
     <AnimatePresence mode="wait">
       {showIntro ? (
-        // Hiển thị IntroFlow trước
+        // 1. Hiển thị IntroFlow trước
         <motion.div 
           key="intro" 
           initial={{ opacity: 1 }} 
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Giả định IntroFlow của bạn có nhận props onStart để tắt Intro */}
           <IntroFlow onStart={() => {
             localStorage.setItem("hasSeenIntro", "true");
-            setShowIntro(false);}} />
+            setShowIntro(false);
+          }} />
         </motion.div>
       ) : (
-        // Sau khi xong Intro mới hiện MainLayout và App chính
-        
-        <div className="min-h-screen bg-gray-50"> 
-    <motion.div
-      key="main-app"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen"
-    >
-      <MainLayout 
-        currentPage={currentPage}
-        userData={userData}
-        onPageChange={(page: any) => {
-          setCurrentPage(page);
-          if (page !== 'create-quiz') setQuizStatus('idle');
-        }}
-      >
-        {/* Nội dung Dashboard của bạn */}
-        <div className="p-4">
-           {/* Render các component dựa trên currentPage ở đây */}
-        </div>
-      </MainLayout>
-    </motion.div>
-  </div> /* ĐÓNG THẺ DIV MỚI THÊM */
-)}
+        // 2. Sau khi xong Intro mới hiện MainLayout và App chính
+        <motion.div
+          key="main-app"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="min-h-screen bg-gray-50"
+        >
+          <MainLayout 
+            currentPage={currentPage}
+            userData={userData}
+            onPageChange={(page: any) => {
+              setCurrentPage(page);
+              if (page !== 'create-quiz') setQuizStatus('idle');
+            }}
+          >
+            {/* CHỖ QUAN TRỌNG NHẤT: Gọi hàm render nội dung trang tại đây */}
+            <div className="p-4">
+               {renderPage()}
+            </div>
+          </MainLayout>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }
