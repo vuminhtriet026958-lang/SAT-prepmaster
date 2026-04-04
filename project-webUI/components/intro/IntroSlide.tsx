@@ -2,7 +2,8 @@
 import { useState } from 'react'; // Thêm dòng này vào đầu file
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 interface IntroSlideProps {
   onStart: () => void;
 }
@@ -28,6 +29,15 @@ const letter = {
 
 export default function IntroFlow({ onStart }: IntroSlideProps) {
   const [currentStep, setCurrentStep] = useState(1); 
+  const handleGoogleLogin = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log("Chào mừng:", result.user.displayName);
+    onStart(); // Gọi hàm này để đóng Intro và vào Dashboard sau khi đăng nhập thành công
+  } catch (error) {
+    console.error("Lỗi đăng nhập:", error);
+  }
+};
  const slides = [
   { 
     title: "PREPMASTER", 

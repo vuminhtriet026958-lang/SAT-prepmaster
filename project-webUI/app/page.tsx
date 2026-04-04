@@ -47,7 +47,7 @@ export default function Home() {
     wrongAnswers: 0,
     entertainmentMinutes: 0,
   });
-
+const [isClient, setIsClient] = useState(false);
   const [generatedQuiz, setGeneratedQuiz] = useState<any[]>([]);
   const [isQuizGenerating, setIsQuizGenerating] = useState(false);
   const [quizStatus, setQuizStatus] = useState<QuizStatus>('idle');
@@ -57,6 +57,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+  setIsClient(true);
+  const hasSeen = localStorage.getItem("hasSeenIntro");
+  if (!hasSeen) {
+    setShowIntro(true);
+  }
     let timer: NodeJS.Timeout;
     if (currentPage === 'entertainment' && userData.entertainmentMinutes > 0) {
       timer = setInterval(() => {
@@ -186,31 +191,37 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           {/* Giả định IntroFlow của bạn có nhận props onStart để tắt Intro */}
-          <IntroFlow onStart={() => setShowIntro(false)} />
+          <IntroFlow onStart={() => {
+            localStorage.setItem("hasSeenIntro", "true");
+            setShowIntro(false);}} />
         </motion.div>
       ) : (
         // Sau khi xong Intro mới hiện MainLayout và App chính
-        <motion.div 
-          key="main-app" 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="min-h-screen"
-        >
-          <MainLayout
-            currentPage={currentPage}
-            onPageChange={(page: any) => {
-              setCurrentPage(page);
-              if (page !== 'create-quiz') setQuizStatus('idle');
-            }}
-            userData={userData}
-          >
-            <div className="container mx-auto py-6 px-4 md:px-8 max-w-7xl transition-all duration-300">
-              {renderPage()}
-            </div>
-          </MainLayout>
-        </motion.div>
-      )}
+        
+        <div className="min-h-screen bg-gray-50"> 
+    <motion.div
+      key="main-app"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen"
+    >
+      <MainLayout 
+        currentPage={currentPage}
+        userData={userData}
+        onPageChange={(page: any) => {
+          setCurrentPage(page);
+          if (page !== 'create-quiz') setQuizStatus('idle');
+        }}
+      >
+        {/* Nội dung Dashboard của bạn */}
+        <div className="p-4">
+           {/* Render các component dựa trên currentPage ở đây */}
+        </div>
+      </MainLayout>
+    </motion.div>
+  </div> /* ĐÓNG THẺ DIV MỚI THÊM */
+)}
     </AnimatePresence>
   );
 }
