@@ -10,9 +10,11 @@ import { Profile } from '@/components/pages/Profile';
 import { QuizPlayer } from '@/components/pages/QuizPlayer';
 import { Button } from '@/components/ui/button';
 import { Founders } from '@/components/pages/Founders';
-// Chèn phần import Intro và Animation
 import  IntroFlow  from "@/components/intro/IntroSlide";
 import { AnimatePresence, motion } from "framer-motion";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 type Page = 'dashboard' | 'practice' | 'ai-tutor' | 'create-quiz' | 'entertainment' | 'profile' | 'founders';
 
@@ -31,22 +33,19 @@ type UserData = {
 type QuizStatus = 'idle' | 'playing' | 'finished';
 
 export default function Home() {
-  // --- PHẦN THÊM MỚI: State kiểm soát Intro ---
   const [showIntro, setShowIntro] = useState(true);
-
-  // --- GIỮ NGUYÊN TOÀN BỘ LOGIC CŨ CỦA BẠN ---
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [userData, setUserData] = useState<UserData>({
     name: 'Student',
-    level: 5,
-    exp: 340,
-    maxExp: 500,
-    streak: 7,
-    accuracy: 82,
-    quizzesCompleted: 12,
-    wrongAnswers: 0,
-    entertainmentMinutes: 0,
-  });
+  level: 1,
+  exp: 0,
+  maxExp: 500,
+  streak: 0,
+  accuracy: 0,
+  quizzesCompleted: 0,
+  wrongAnswers: 0,
+  entertainmentMinutes: 0,
+});
 const [isClient, setIsClient] = useState(false);
   const [generatedQuiz, setGeneratedQuiz] = useState<any[]>([]);
   const [isQuizGenerating, setIsQuizGenerating] = useState(false);
@@ -57,6 +56,7 @@ const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    
   setIsClient(true);
   const hasSeen = localStorage.getItem("hasSeenIntro");
   if (!hasSeen) {
@@ -73,6 +73,7 @@ const [isClient, setIsClient] = useState(false);
     }
     return () => clearInterval(timer);
   }, [currentPage, userData.entertainmentMinutes]);
+  
 
   const handleGenerateQuiz = async (subject: string, difficulty: string, count: number) => {
     setIsQuizGenerating(true);
@@ -178,13 +179,33 @@ const [isClient, setIsClient] = useState(false);
         return null;
     }
   };
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
 
-  // --- PHẦN HIỂN THỊ CÓ CHÈN INTRO ---
- // --- PHẦN HIỂN THỊ CÓ CHÈN INTRO ---
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        setUserData(prev => ({
+          ...prev,
+          name: user.displayName || 'Student',
+          level: Math.floor((data.totalExp || 0) / 500) + 1,
+          exp: (data.totalExp || 0) % 500,
+          quizzesCompleted: data.quizzesDone || 0,
+          accuracy: data.accuracy || 0,
+          streak: data.streak || 0,
+        }));
+      }
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
+
   return (
     <AnimatePresence mode="wait">
       {showIntro ? (
-        // 1. Hiển thị IntroFlow trước
         <motion.div 
           key="intro" 
           initial={{ opacity: 1 }} 
@@ -197,7 +218,6 @@ const [isClient, setIsClient] = useState(false);
           }} />
         </motion.div>
       ) : (
-        // 2. Sau khi xong Intro mới hiện MainLayout và App chính
         <motion.div
           key="main-app"
           initial={{ opacity: 0 }}

@@ -3,7 +3,44 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
+import { db, auth } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from "firebase/firestore";
 
+const saveResult = async (score: number, totalQuestions: number, wrongAnswers: any[]) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    // 1. Lưu lịch sử lượt làm bài này
+    await addDoc(collection(db, "quiz_history"), {
+      userId: user.uid,
+      score: score,
+      total: totalQuestions,
+      timestamp: serverTimestamp(),
+    });
+
+    // 2. Lưu danh sách câu sai để ôn tập (Mistake Bank)
+    for (const item of wrongAnswers) {
+      await addDoc(collection(db, "wrong_questions"), {
+        userId: user.uid,
+        question: item.question,
+        yourAnswer: item.userAnswer,
+        correctAnswer: item.correctAnswer,
+        timestamp: serverTimestamp(),
+      });
+    }
+
+    // 3. Cộng EXP cho User (Ví dụ mỗi câu đúng được 10 EXP)
+    const userRef = doc(db, "users", user.uid);
+    await updateDoc(userRef, {
+      totalExp: increment(score * 10),
+      quizzesDone: increment(1)
+    });
+
+  } catch (error) {
+    console.error("Lỗi lưu dữ liệu:", error);
+  }
+};
 interface PracticeProps {
   onWrongAnswer: (count: number) => void;
   onCorrect: () => void; 
