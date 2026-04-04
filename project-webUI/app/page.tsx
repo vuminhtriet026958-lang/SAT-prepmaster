@@ -305,7 +305,7 @@ useEffect(() => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="min-h-screen bg-gray-50"
+          className="min-h-screen bg-gray-50 dark:bg-[#020617] transition-colors duration-500"
         >
           <MainLayout 
             currentPage={currentPage}
