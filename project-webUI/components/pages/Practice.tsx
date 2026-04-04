@@ -42,7 +42,7 @@ const saveResult = async (score: number, totalQuestions: number, wrongAnswers: a
   }
 };
 interface PracticeProps {
-  onWrongAnswer: (count: number) => void;
+  onWrongAnswer: (data: { question: string; userAnswer: string; correctAnswer: string }) => void;
   onCorrect: () => void; 
   satQuestion: any;      
   onFetchQuestion: (category: string) => void; 
@@ -70,25 +70,31 @@ export function Practice({
     onFetchQuestion(currentTab); 
   }, [currentTab]);
 
-  const handleAnswerSelect = (index: number) => {
-  if (showFeedback || !satQuestion || isLoading) return; // Chặn bấm khi đang load
-  
+  const handleAnswerSelect = async (index: number) => {
+  if (showFeedback || !satQuestion || isLoading) return;
+
   setSelectedAnswer(index);
   setShowFeedback(true);
 
   const labels = ['A', 'B', 'C', 'D'];
   const selectedLabel = labels[index];
   
-  // CHUẨN HÓA: Lấy chữ cái đầu tiên của câu trả lời từ AI để so sánh
+  // Lấy đáp án đúng (ví dụ: "A")
   const correctLetter = satQuestion.answer?.trim().charAt(0).toUpperCase();
   const isCorrect = selectedLabel === correctLetter;
 
   if (!isCorrect) {
-    const newWrongCount = stats.wrong + 1;
-    setStats((prev) => ({ ...prev, wrong: newWrongCount }));
-    onWrongAnswer(newWrongCount);
+    setStats((prev) => ({ ...prev, wrong: prev.wrong + 1 }));
+    
+    // TRUYỀN THÊM DỮ LIỆU: Để lưu vào mục Mistakes ở Profile
+    onWrongAnswer({
+      question: satQuestion.question,
+      userAnswer: selectedLabel,
+      correctAnswer: correctLetter
+    });
   } else {
     setStats((prev) => ({ ...prev, correct: prev.correct + 1 }));
+    // Gọi hàm cộng XP
     onCorrect(); 
   }
 };
@@ -161,7 +167,8 @@ export function Practice({
             <div className="grid gap-3 mb-8">
               {satQuestion.options?.map((option: string, index: number) => {
                 const labels = ['A', 'B', 'C', 'D'];
-                const isCorrect = labels[index] === satQuestion.answer;
+                const correctLetter = satQuestion.answer?.trim().charAt(0).toUpperCase();
+                const isCorrect = labels[index] === correctLetter;
                 const isSelected = selectedAnswer === index;
 
                 return (

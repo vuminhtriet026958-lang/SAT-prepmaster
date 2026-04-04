@@ -35,7 +35,7 @@ type UserData = {
   streak: number;
   accuracy: number;
   quizzesCompleted: number;
-  wrongAnswers: number;
+  wrongAnswers: any;
   entertainmentMinutes: number;
 };
 
@@ -177,13 +177,30 @@ const [isClient, setIsClient] = useState(false);
       case 'practice':
         return (
           <Practice 
-            onWrongAnswer={(c) => setUserData(p => ({...p, wrongAnswers: c}))} 
-            onCorrect={handleCorrectAnswer}
-            satQuestion={satQuestion} 
-            onFetchQuestion={fetchAIQuestion}
-            isLoading={isLoading}
-          />
-        );
+            onWrongAnswer={async (data) => {
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            await addDoc(collection(db, "history"), {
+              userId: user.uid,
+              type: "question", // Để Profile lọc ra mục Mistakes
+              content: { question: data.question },
+              userAnswer: data.userAnswer,
+              correctAnswer: data.correctAnswer,
+              timestamp: serverTimestamp(),
+            });
+            console.log("Đã lưu câu sai vào Profile!");
+          } catch (err) {
+            console.error("Lỗi lưu câu sai:", err);
+          }
+        }
+      }} 
+      onCorrect={handleCorrectAnswer}
+      satQuestion={satQuestion} 
+      onFetchQuestion={fetchAIQuestion}
+      isLoading={isLoading}
+    />
+  );
       case 'ai-tutor':
         return <AITutor />;
       case 'create-quiz':
