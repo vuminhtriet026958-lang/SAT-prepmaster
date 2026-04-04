@@ -14,6 +14,7 @@ import  IntroFlow  from "@/components/intro/IntroSlide";
 import { AnimatePresence, motion } from "framer-motion";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from 'next/navigation';
 import { getDoc } from "firebase/firestore";
 import { 
   collection, 
@@ -42,6 +43,7 @@ type UserData = {
 type QuizStatus = 'idle' | 'playing' | 'finished';
 
 export default function Home() {
+  const router = useRouter(); // Khai báo router ở đây
   const [showIntro, setShowIntro] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [userData, setUserData] = useState<UserData>({
@@ -231,20 +233,19 @@ const [isClient, setIsClient] = useState(false);
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
     if (user) {
+      // TRƯỜNG HỢP 1: CÓ USER ĐĂNG NHẬP
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const data = userSnap.data();
-        
-        // Tính toán dựa trực tiếp trên data từ Firestore
         const totalExp = data.totalExp || 0;
         const currentLevel = Math.floor(totalExp / 500) + 1;
         const currentExp = totalExp % 500;
 
         setUserData(prev => {
           const updated = {
-            ...prev, // Lấy các giá trị hiện tại (như entertainmentMinutes)
+            ...prev,
             name: user.displayName || 'Student',
             level: currentLevel,
             exp: currentExp,
@@ -252,13 +253,11 @@ useEffect(() => {
             accuracy: data.accuracy || 0,
             streak: data.streak || 0,
           };
-          
-          // Lưu vào localStorage ngay tại đây để F5 không mất
           localStorage.setItem("localUserData", JSON.stringify(updated));
           return updated;
         });
       } else {
-        // Nếu user mới chưa có trong Database, hãy tạo cho họ 1 bản ghi
+        // Nếu user mới tinh chưa có record trong DB
         await setDoc(userRef, { 
           totalExp: 0, 
           quizzesDone: 0, 
@@ -266,10 +265,26 @@ useEffect(() => {
           streak: 0 
         });
       }
+    } else {
+      // TRƯỜNG HỢP 2: USER LOGOUT (Đây mới là chỗ đúng cho else)
+      localStorage.removeItem("localUserData");
+      setUserData({
+        name: 'Student',
+        level: 1,
+        exp: 0,
+        maxExp: 500,
+        streak: 0,
+        accuracy: 0,
+        quizzesCompleted: 0,
+        wrongAnswers: 0,
+        entertainmentMinutes: 0,
+      });
+      setShowIntro(true); 
+      // Hoặc router.push('/intro') nếu bạn tách trang
     }
   });
   return () => unsubscribe();
-}, []); // Dependency array trống là đúng vì ta chỉ muốn chạy 1 lần khi load trang
+}, [router]);// Dependency array trống là đúng vì ta chỉ muốn chạy 1 lần khi load trang
   return (
     <AnimatePresence mode="wait">
       {showIntro ? (

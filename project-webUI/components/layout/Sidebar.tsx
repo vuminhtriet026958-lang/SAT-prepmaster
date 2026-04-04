@@ -4,12 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { useRouter } from 'next/navigation'
 
-const handleLogout = async () => {
-  await signOut(auth);
-  localStorage.removeItem("localUserData");
-  window.location.reload(); 
-};
 type SidebarProps = {
   currentPage: string;
   onPageChange: (page: string) => void;
@@ -32,6 +28,16 @@ export function Sidebar({
   isCollapsed,
   setIsCollapsed,
 }: SidebarProps) {
+  const router = useRouter();
+  const handleLogout = async () => {
+  try {
+    await signOut(auth);
+
+  } catch (error) {
+    console.error("Lỗi đăng xuất:", error);
+  }
+};
+
   const pages = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'practice', label: 'Practice', icon: '✏️' },
@@ -125,9 +131,12 @@ export function Sidebar({
           }`}
           onClick={() => {
             // Tạm thời log ra để Triet thấy nút đã hoạt động
-            console.log("Đang chuyển chế độ màu...");
-            alert("Tính năng Dark Mode sẽ sớm ra mắt ở bản v1.1!");
-          }}
+            document.documentElement.classList.toggle('dark');
+  
+  // (Tùy chọn) Lưu vào localStorage để lần sau vào web vẫn là Dark Mode
+  const isDark = document.documentElement.classList.contains('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}}
         >
           <span className="text-xl">🌙</span>
           {!isCollapsed && <span>Dark Mode</span>}
