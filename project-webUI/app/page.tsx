@@ -14,7 +14,15 @@ import  IntroFlow  from "@/components/intro/IntroSlide";
 import { AnimatePresence, motion } from "framer-motion";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { getDoc } from "firebase/firestore";
+import { 
+  collection, 
+  addDoc, 
+  serverTimestamp, 
+  doc, 
+  updateDoc, 
+  increment 
+} from "firebase/firestore";
 
 type Page = 'dashboard' | 'practice' | 'ai-tutor' | 'create-quiz' | 'entertainment' | 'profile' | 'founders';
 
@@ -33,7 +41,7 @@ type UserData = {
 type QuizStatus = 'idle' | 'playing' | 'finished';
 
 export default function Home() {
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [userData, setUserData] = useState<UserData>({
     name: 'Student',
@@ -61,6 +69,10 @@ const [isClient, setIsClient] = useState(false);
   const hasSeen = localStorage.getItem("hasSeenIntro");
   if (!hasSeen) {
     setShowIntro(true);
+  }
+  const localData = localStorage.getItem("localUserData");
+  if (localData) {
+    setUserData(JSON.parse(localData));
   }
     let timer: NodeJS.Timeout;
     if (currentPage === 'entertainment' && userData.entertainmentMinutes > 0) {
@@ -101,16 +113,35 @@ const [isClient, setIsClient] = useState(false);
     }
   };
 
-  const handleFinishQuiz = (score: number) => {
-    setLastQuizScore(score);
-    setQuizStatus('finished');
-    setUserData(prev => ({
-      ...prev,
-      exp: Math.min(prev.maxExp, prev.exp + (score * 15)),
-      entertainmentMinutes: prev.entertainmentMinutes + (score * 2),
-      quizzesCompleted: prev.quizzesCompleted + 1
-    }));
-  };
+  const handleFinishQuiz = async (score: number) => {
+  setLastQuizScore(score);
+  setQuizStatus('finished');
+
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      // 1. Ghi vào collection "history" để Profile hiển thị
+      await addDoc(collection(db, "history"), {
+        userId: user.uid,
+        type: "quiz",
+        score: score,
+        total: generatedQuiz.length,
+        timestamp: serverTimestamp(),
+      });
+
+      // 2. Cập nhật tổng EXP vào bảng "users"
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        totalExp: increment(score * 15), // Mỗi câu đúng 15 EXP
+        quizzesDone: increment(1)
+      });
+      
+      console.log("Dữ liệu đã được đồng bộ lên mây!");
+    } catch (err) {
+      console.error("Lưu thất bại:", err);
+    }
+  }
+};
 
   const fetchAIQuestion = async (category = 'math') => {
     if (isLoading) return; 
@@ -187,22 +218,23 @@ useEffect(() => {
 
       if (userSnap.exists()) {
         const data = userSnap.data();
-        setUserData(prev => ({
-          ...prev,
+        const updatedData = {
+          ...userData,
           name: user.displayName || 'Student',
           level: Math.floor((data.totalExp || 0) / 500) + 1,
           exp: (data.totalExp || 0) % 500,
           quizzesCompleted: data.quizzesDone || 0,
           accuracy: data.accuracy || 0,
           streak: data.streak || 0,
-        }));
+        };
+        setUserData(updatedData);
+        // Lưu vào máy người dùng để F5 không mất
+        localStorage.setItem("localUserData", JSON.stringify(updatedData));
       }
     }
   });
-
   return () => unsubscribe();
 }, []);
-
   return (
     <AnimatePresence mode="wait">
       {showIntro ? (
