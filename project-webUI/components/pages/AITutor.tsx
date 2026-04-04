@@ -10,7 +10,7 @@ type Message = {
   text: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  isQuiz?: boolean; // Đánh dấu nếu tin nhắn chứa câu hỏi trắc nghiệm
+  isQuiz?: boolean;
 };
 
 export function AITutor() {
@@ -26,11 +26,9 @@ export function AITutor() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Tự động cuộn xuống khi có tin nhắn mới
   useEffect(() => {
     if (scrollRef.current) {
       const scrollElement = scrollRef.current;
-      // Dùng timeout nhỏ để đảm bảo DOM đã render xong trước khi cuộn
       setTimeout(() => {
         scrollElement.scrollTop = scrollElement.scrollHeight;
       }, 100);
@@ -54,9 +52,7 @@ export function AITutor() {
     setIsLoading(true);
 
     try {
-      // --- SỬA LỖI URL TẠI ĐÂY ---
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sat-prepmaster.onrender.com";
-      
       const res = await fetch(`${API_BASE_URL}/api/ai-tutor/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,7 +62,6 @@ export function AITutor() {
       if (!res.ok) throw new Error("Mạng lỗi");
 
       const data = await res.json();
-
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: data.reply,
@@ -78,7 +73,7 @@ export function AITutor() {
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       setMessages((prev) => [...prev, {
-        id: 'err-' + Date.now(), // Đảm bảo ID luôn unique
+        id: 'err-' + Date.now(),
         text: "Hệ thống đang bận hoặc server chưa khởi động xong, bạn thử lại sau giây lát nhé!",
         sender: 'ai',
         timestamp: new Date()
@@ -94,21 +89,23 @@ export function AITutor() {
         const quiz = JSON.parse(msg.text);
         return (
           <div className="space-y-3">
-            <p className="font-medium text-blue-700">📝 Practice Question:</p>
+            <p className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2">
+              <span>📝</span> Practice Question:
+            </p>
             {quiz.passage && (
-              <p className="italic bg-gray-50 p-2 rounded border-l-4 border-blue-400 text-sm">
+              <p className="italic bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border-l-4 border-blue-400 text-sm text-gray-700 dark:text-slate-300">
                 {quiz.passage}
               </p>
             )}
-            <p className="font-bold">{quiz.question}</p>
+            <p className="font-bold text-gray-900 dark:text-white leading-relaxed">{quiz.question}</p>
             <div className="grid grid-cols-1 gap-2 mt-2">
               {quiz.choices && Object.entries(quiz.choices).map(([key, val]) => (
                 <button
                   key={key}
-                  className="text-left p-2 rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all text-sm block w-full"
+                  className="text-left p-3 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-500 transition-all text-sm block w-full text-gray-700 dark:text-slate-300 group"
                   onClick={() => setInput(`Đáp án của mình là ${key}. Giải thích cho mình tại sao đúng/sai?`)}
                 >
-                  <span className="font-bold mr-2">{key}.</span> {val as string}
+                  <span className="font-bold mr-2 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform inline-block">{key}.</span> {val as string}
                 </button>
               ))}
             </div>
@@ -122,50 +119,59 @@ export function AITutor() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] max-w-4xl mx-auto w-full">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">AI Tutor Chat</h1>
-        <p className="text-sm text-gray-500">Hỏi bất cứ điều gì về SAT Math, Reading hoặc Writing</p>
+    <div className="flex flex-col h-[calc(100vh-140px)] max-w-4xl mx-auto w-full animate-in fade-in duration-500">
+      <div className="mb-4 space-y-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Tutor Chat</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400">Hỏi bất cứ điều gì về SAT Math, Reading hoặc Writing</p>
       </div>
 
       {/* Chat Box */}
-      <Card className="flex-1 overflow-hidden flex flex-col shadow-lg border-gray-200">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+      <Card className="flex-1 overflow-hidden flex flex-col shadow-xl border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/50 dark:bg-slate-950/50 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-slate-700">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
+              <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm transition-all ${
                 msg.sender === 'user' 
-                ? 'bg-blue-600 text-white rounded-br-none' 
-                : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                ? 'bg-blue-600 text-white rounded-br-none shadow-blue-500/20' 
+                : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 border border-gray-100 dark:border-slate-700 rounded-bl-none shadow-black/5'
               }`}>
-                {renderMessageContent(msg)}
-                <span className={`text-[10px] block mt-2 opacity-60 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                <div className="text-[15px] leading-relaxed">
+                  {renderMessageContent(msg)}
+                </div>
+                <span className={`text-[10px] block mt-2 opacity-50 font-medium ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             </div>
           ))}
+          
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-white p-3 rounded-lg shadow-sm flex gap-1 items-center">
-                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></div>
-                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 flex gap-1.5 items-center">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-duration:0.8s]"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.2s]"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.4s]"></div>
               </div>
             </div>
           )}
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-gray-100 flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ví dụ: Giải thích cho mình về cách dùng dấu phẩy trong SAT Writing..."
-            className="flex-1 bg-gray-50 border-none focus-visible:ring-blue-500"
-          />
-          <Button type="submit" disabled={isLoading || !input.trim()} className="bg-blue-600 hover:bg-blue-700">
-            Gửi
+        <form onSubmit={handleSendMessage} className="p-4 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex gap-3 items-center">
+          <div className="flex-1 relative">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Hỏi về công thức Math, ngữ pháp..."
+              className="w-full bg-gray-50 dark:bg-slate-800 border-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-white py-6 rounded-xl transition-all"
+            />
+          </div>
+          <Button 
+            type="submit" 
+            disabled={isLoading || !input.trim()} 
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-6 rounded-xl shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95"
+          >
+            {isLoading ? '...' : 'Gửi'}
           </Button>
         </form>
       </Card>
