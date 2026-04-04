@@ -20,6 +20,7 @@ import {
   addDoc, 
   serverTimestamp, 
   doc, 
+  setDoc,
   updateDoc, 
   increment 
 } from "firebase/firestore";
@@ -218,23 +219,40 @@ useEffect(() => {
 
       if (userSnap.exists()) {
         const data = userSnap.data();
-        const updatedData = {
-          ...userData,
-          name: user.displayName || 'Student',
-          level: Math.floor((data.totalExp || 0) / 500) + 1,
-          exp: (data.totalExp || 0) % 500,
-          quizzesCompleted: data.quizzesDone || 0,
-          accuracy: data.accuracy || 0,
-          streak: data.streak || 0,
-        };
-        setUserData(updatedData);
-        // Lưu vào máy người dùng để F5 không mất
-        localStorage.setItem("localUserData", JSON.stringify(updatedData));
+        
+        // Tính toán dựa trực tiếp trên data từ Firestore
+        const totalExp = data.totalExp || 0;
+        const currentLevel = Math.floor(totalExp / 500) + 1;
+        const currentExp = totalExp % 500;
+
+        setUserData(prev => {
+          const updated = {
+            ...prev, // Lấy các giá trị hiện tại (như entertainmentMinutes)
+            name: user.displayName || 'Student',
+            level: currentLevel,
+            exp: currentExp,
+            quizzesCompleted: data.quizzesDone || 0,
+            accuracy: data.accuracy || 0,
+            streak: data.streak || 0,
+          };
+          
+          // Lưu vào localStorage ngay tại đây để F5 không mất
+          localStorage.setItem("localUserData", JSON.stringify(updated));
+          return updated;
+        });
+      } else {
+        // Nếu user mới chưa có trong Database, hãy tạo cho họ 1 bản ghi
+        await setDoc(userRef, { 
+          totalExp: 0, 
+          quizzesDone: 0, 
+          accuracy: 0, 
+          streak: 0 
+        });
       }
     }
   });
   return () => unsubscribe();
-}, []);
+}, []); // Dependency array trống là đúng vì ta chỉ muốn chạy 1 lần khi load trang
   return (
     <AnimatePresence mode="wait">
       {showIntro ? (
