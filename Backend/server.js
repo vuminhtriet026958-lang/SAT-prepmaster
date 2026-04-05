@@ -7,107 +7,103 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- HÀM XOAY VÒNG KEY ---
+// --- TỐI ƯU 1: QUẢN LÝ KEY VÀ KẾT NỐI ---
+const keysString = process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY || "";
+const apiKeys = keysString.split(",").map(k => k.trim()).filter(k => k !== "");
+let currentKeyIndex = 0;
+
+// Hàm lấy client mà không khởi tạo lại liên tục
 function getGroqClient() {
-    const keysString = process.env.GROQ_API_KEYS || "";
-    const keys = keysString.split(",").map(k => k.trim()).filter(k => k !== "");
-    const selectedKey = keys.length > 0 ? keys[Math.floor(Math.random() * keys.length)] : process.env.GROQ_API_KEY;
-    return new Groq({ apiKey: selectedKey });
+    const key = apiKeys[currentKeyIndex];
+    currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length; // Xoay vòng index
+    return new Groq({ apiKey: key });
 }
 
-// --- 1. API PRACTICE (ĐÃ GIA CỐ CỰC MẠNH) ---
+// --- TỐI ƯU 2: CÁC BỘ PROMPT NGẮN GỌN (GIẢM ĐỘ TRỄ) ---
+const MATH_PROMPT = (topic) => `Role: SAT Math Expert. 
+Task: 1 unique question about ${topic}. 
+Rules: Question/Options in English. Explanation in Vietnamese. No LaTeX. 
+Format: Return ONLY JSON.
+JSON: {"passage": null, "question": "...", "options": ["A) ", "B) ", "C) ", "D) "], "answer": "A", "step_by_step_explanation": "..."}`;
+
+const READING_PROMPT = () => `Role: SAT Reading. Task: 1 passage (100 words) + 1 question. 
+Rules: English content, Vietnamese explanation. ONLY JSON.
+JSON: {"passage": "...", "question": "...", "options": ["A) ", "B) ", "C) ", "D) "], "answer": "A", "step_by_step_explanation": "..."}`;
+
+const WRITING_PROMPT = () => `Role: SAT Writing. Task: 1 grammar question. 
+Rules: English content, Vietnamese explanation. ONLY JSON.
+JSON: {"passage": "Context here", "question": "...", "options": ["A) ", "B) ", "C) ", "D) "], "answer": "A", "step_by_step_explanation": "..."}`;
+
+// --- 1. API PRACTICE (SIÊU TỐC ĐỘ) ---
 app.get('/api/sat-question', async (req, res) => {
-    // Ép trình duyệt không được cache kết quả
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Cache-Control', 'no-store');
+    const { category } = req.query;
     
-    const { category } = req.query; // math, reading, writing
-    
-    // TẠO SYSTEM PROMPT RIÊNG BIỆT CHO TỪNG MÔN
-    let systemRole = "";
+    let finalPrompt = "";
     if (category === 'math') {
-        systemRole = "You are an SAT Math Expert. Generate ONLY Math questions. No passages. English for questions, Vietnamese for explanations.";
-    } else if (category === 'reading') {
-        systemRole = "You are an SAT Reading Expert. You MUST provide a long academic passage (English). Question and options in English, explanation in Vietnamese.";
+        const topics = ["Algebra", "Geometry", "Data Analysis", "Functions"];
+        finalPrompt = MATH_PROMPT(topics[Math.floor(Math.random() * topics.length)]);
     } else if (category === 'writing') {
-        systemRole = "You are an SAT Writing Expert. Provide a short passage with grammar focus (English). Question in English, explanation in Vietnamese.";
+        finalPrompt = WRITING_PROMPT();
     } else {
-        systemRole = "You are an SAT Expert. Return ONLY JSON.";
+        finalPrompt = READING_PROMPT();
     }
 
-    const userPrompt = `Generate one UNIQUE SAT ${category.toUpperCase()} question. 
-    STRICT RULES:
-    1. Language: Passage/Question/Options MUST BE IN ENGLISH.
-    2. Explanation: MUST BE IN VIETNAMESE.
-    3. Format: Return ONLY JSON.
-    JSON: {"passage": "text or null", "question": "string", "options": ["A) ", "B) ", "C) ", "D) "], "answer": "A", "step_by_step_explanation": "Giải thích..."}`;
-
     try {
-        const groqClient = getGroqClient();
-        const chatCompletion = await groqClient.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemRole }, // Ép vai trò AI ở đây
-                { role: 'user', content: userPrompt }
-            ],
+        const client = getGroqClient();
+        const completion = await client.chat.completions.create({
+            messages: [{ role: 'user', content: finalPrompt }],
             model: 'llama-3.1-8b-instant',
-            temperature: 0, // Tuyệt đối không để AI sáng tạo sai ngôn ngữ
-            max_tokens: 1200
+            temperature: 0,
+            max_tokens: 600, // TỐI ƯU: Giảm max_tokens để AI trả về nhanh hơn
         });
 
-        const aiResponse = chatCompletion.choices[0]?.message?.content || "";
-        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-
-        if (jsonMatch) {
-            res.json(JSON.parse(jsonMatch[0]));
-        } else {
-            throw new Error("No JSON found");
-        }
+        const content = completion.choices[0]?.message?.content || "";
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) res.json(JSON.parse(jsonMatch[0]));
+        else throw new Error("JSON fail");
     } catch (error) {
-        console.error("Practice Error:", error.message);
-        res.status(500).json({ error: "Lỗi hệ thống." });
+        console.error("Speed Error:", error.message);
+        res.status(500).json({ error: "API Busy" });
     }
 });
 
-// --- 2. API QUIZ (GIA CỐ ĐỘ KHÓ) ---
+// --- 2. API QUIZ ---
 app.post('/api/generate-quiz', async (req, res) => {
     const { subject, difficulty, count } = req.body;
-    const prompt = `Create an SAT ${subject.toUpperCase()} quiz. Difficulty: ${difficulty}. 
-    - Questions/Options: English. 
-    - Explanations: Vietnamese.
-    - Return ONLY JSON: {"questions": [{"text": "...", "options": ["A) ", "B) ", "C) ", "D) "], "correct": 0, "explanation": "..."}]}`;
-
+    const prompt = `Create ${count} SAT ${subject} questions (${difficulty}). English content, Vietnamese explanation. ONLY JSON: {"questions": [...]}`;
     try {
-        const groqClient = getGroqClient();
-        const chatCompletion = await groqClient.chat.completions.create({
-            messages: [{ role: 'system', content: `You are an SAT Professor specialized in ${difficulty} level.` }, { role: 'user', content: prompt }],
+        const client = getGroqClient();
+        const completion = await client.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
             model: 'llama-3.1-8b-instant',
-            temperature: 0.1
+            temperature: 0.2,
+            max_tokens: 1500
         });
-        const jsonMatch = chatCompletion.choices[0]?.message?.content.match(/\{[\s\S]*\}/);
+        const jsonMatch = completion.choices[0]?.message?.content.match(/\{[\s\S]*\}/);
         res.json(JSON.parse(jsonMatch[0]));
     } catch (error) {
-        res.status(500).json({ error: "Lỗi tạo Quiz." });
+        res.status(500).json({ error: "Quiz Error" });
     }
 });
 
-// --- 3. API CHAT (BỎ DẤU NGOẶC KHI NÓI CHUYỆN) ---
+// --- 3. API CHAT ---
 app.post('/api/ai-tutor/chat', async (req, res) => {
-    const { message } = req.body;
     try {
-        const groqClient = getGroqClient();
-        const completion = await groqClient.chat.completions.create({
+        const client = getGroqClient();
+        const completion = await client.chat.completions.create({
             messages: [
-                { role: 'system', content: 'You are a friendly SAT Tutor. Speak ONLY Vietnamese. If you give a practice question, use JSON format inside your response.' },
-                { role: 'user', content: message }
+                { role: 'system', content: 'You are an SAT Tutor. Speak Vietnamese.' },
+                { role: 'user', content: req.body.message }
             ],
             model: 'llama-3.1-8b-instant',
         });
-        const aiResponse = completion.choices[0].message.content;
-        const isJson = /\{[\s\S]*\}/.test(aiResponse);
-        res.json({ reply: aiResponse, isQuiz: isJson });
+        const reply = completion.choices[0].message.content;
+        res.json({ reply, isQuiz: /\{[\s\S]*\}/.test(reply) });
     } catch (error) {
-        res.status(500).json({ error: "AI bận!" });
+        res.status(500).json({ error: "Chat Error" });
     }
 });
 
 const PORT = process.env.PORT || 3010;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server on port ${PORT}`));
