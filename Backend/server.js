@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- QUẢN LÝ XOAY VÒNG API KEY ---
+// --- 1. QUẢN LÝ XOAY VÒNG API KEY ---
 const keysString = process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY || "";
 const apiKeys = keysString.split(",").map(k => k.trim()).filter(k => k !== "");
 let currentKeyIndex = 0;
@@ -18,150 +18,92 @@ function getGroqClient() {
     return new Groq({ apiKey: key });
 }
 
-// --- DANH SÁCH CHỦ ĐỀ TOÁN THỰC TẾ (CHỐNG LẶP & TĂNG TƯ DUY) ---
-const mathTopics = [
-    "Linear function word problems: evaluating cost vs time for two different companies",
-    "System of equations: calculating ticket sales with different prices in a real-world scenario",
-    "Quadratic models: projectile motion or maximum profit for a business",
-    "Percentages and ratios: mixing chemical solutions or population density",
-    "Right triangle trigonometry: solving real-world height/distance problems",
-    "Data analysis: interpreting scatterplots, line of best fit, and margins of error",
-    "Exponential models: compound interest vs simple interest comparison",
-    "Unit conversions: multi-step rate conversions in physics or geography contexts",
-    "Geometry: calculating surface area or volume of composite 3D objects in construction"
-];
+// --- 2. HÀM LỌC RÁC JSON (BẢO VỆ SERVER) ---
+const safeParse = (str) => {
+    try {
+        const jsonMatch = str.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return null;
+        const cleaned = jsonMatch[0].replace(/[\u0000-\u001F]+/g, " ");
+        return JSON.parse(cleaned);
+    } catch (e) {
+        console.error("Lỗi parse JSON:", e.message);
+        return null;
+    }
+};
 
-// --- BỘ KHUNG PROMPT CHI TIẾT ---
-
+// --- 3. PROMPT CHI TIẾT (ĐÃ PHÂN LOẠI READING/WRITING) ---
 const getMathPrompt = (topic, seed) => `
-Role: Senior SAT Math Professor.
-Task: Create a BRAND NEW SAT Math question.
-TOPIC: ${topic}
-UNIQUE ID: ${seed}
+Role: Senior SAT Math Professor. Unique ID: ${seed}.
+Task: Create a NEW SAT Math question about ${topic}.
+RULES:
+1. Double-check math logic: Ensure only ONE option is correct.
+2. English for Question/Options. Vietnamese for "explanation".
+3. NO LaTeX. Use x^2, sqrt(x).
+Format: Return ONLY a JSON object.`;
 
+const getReadingWritingPrompt = (category, seed) => {
+    const isWriting = category === 'writing';
+    return `
+Role: Senior SAT ${category} Specialist. Unique ID: ${seed}.
+Task: Create an SAT ${category.toUpperCase()} question.
 STRICT RULES:
-1. LOGIC: Internal step-by-step check to ensure the math is 100% correct. Keep arithmetic simple but conceptual logic rigorous.
-2. LANGUAGE IS MANDATORY: "question" and "options" MUST BE 100% IN ENGLISH. "step_by_step_explanation" MUST BE IN VIETNAMESE. NEVER use Vietnamese in the question.
-3. MATH FORMAT: Use standard text (e.g., x^2). NO LaTeX.
-4. RETURN FORMAT: ONLY return a valid JSON object.
+1. PASSAGE: Write a 100-word paragraph. ${isWriting ? "Focus on grammar/punctuation/transitions." : "Focus on main idea/inference."}
+2. QUESTION: ${isWriting ? "Ask to correct a specific part of the text." : "Ask about the author's tone or evidence."}
+3. Language: English (content), Vietnamese (explanation).
+Format: Return ONLY a JSON object.`;
+};
 
-JSON Structure:
-{
-  "passage": null,
-  "question": "English text with specific numbers and clear real-world context.",
-  "options": ["A) ", "B) ", "C) ", "D) "],
-  "answer": "A",
-  "step_by_step_explanation": "Giải thích chi tiết các bước giải bằng tiếng Việt."
-}`;
-
-const getReadingWritingPrompt = (category, seed) => `
-Role: Senior SAT ${category === 'reading' ? 'Reading' : 'Writing'} Professor.
-Task: Create a BRAND NEW SAT ${category} question.
-UNIQUE ID: ${seed}
-
-STRICT RULES:
-1. PASSAGE IS MANDATORY: You MUST write a 100-150 word paragraph in the "passage" field. Do NOT leave it null. The question MUST be based on this passage.
-2. LANGUAGE IS MANDATORY: "passage", "question", and "options" MUST BE 100% IN ENGLISH. "step_by_step_explanation" MUST BE IN VIETNAMESE.
-3. RETURN FORMAT: ONLY return a valid JSON object.
-
-JSON Structure:
-{
-  "passage": "Write the English ${category} passage here. DO NOT LEAVE THIS NULL.",
-  "question": "English question asking about the main idea, grammar, or vocabulary of the passage.",
-  "options": ["A) ", "B) ", "C) ", "D) "],
-  "answer": "A",
-  "step_by_step_explanation": "Giải thích chi tiết tại sao đáp án này đúng và các đáp án khác sai bằng tiếng Việt."
-}`;
-
-// --- 1. API PRACTICE ---
+// --- 4. API PRACTICE (ĐÃ GIA CỐ) ---
 app.get('/api/sat-question', async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    const { category } = req.query; // 'math', 'reading', or 'writing'
+    const { category } = req.query;
     const seed = Math.floor(Math.random() * 1000000); 
     
-    let finalPrompt = "";
-    if (category === 'math') {
-        const randomTopic = mathTopics[Math.floor(Math.random() * mathTopics.length)];
-        finalPrompt = getMathPrompt(randomTopic, seed);
-    } else if (category === 'reading' || category === 'writing') {
-        finalPrompt = getReadingWritingPrompt(category, seed);
-    } else {
-        return res.status(400).json({ error: "Invalid category" });
-    }
+    let finalPrompt = category === 'math' 
+        ? getMathPrompt("Algebra/Geometry", seed) 
+        : getReadingWritingPrompt(category, seed);
 
     try {
         const client = getGroqClient();
         const completion = await client.chat.completions.create({
             messages: [
-                { role: 'system', content: 'You are an SAT Expert JSON generator. You strictly follow language formatting rules.' },
+                { role: 'system', content: 'You are an SAT Expert. Output ONLY raw JSON. No conversational filler.' },
                 { role: 'user', content: finalPrompt }
             ],
             model: 'llama-3.1-8b-instant',
-            temperature: 0.65, // Tăng nhẹ để đa dạng câu hỏi nhưng không làm hỏng JSON
-            max_tokens: 1200
+            temperature: 0.4, // Giảm xuống để logic toán chính xác hơn
+            response_format: { type: "json_object" } 
         });
 
-        const content = completion.choices[0]?.message?.content || "";
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        
-        if (jsonMatch) {
-            const data = JSON.parse(jsonMatch[0]);
-            console.log(`[Generated] Category: ${category} | Question: ${data.question.substring(0, 30)}...`);
-            res.json(data);
-        } else {
-            throw new Error("AI did not return valid JSON");
-        }
+        const data = safeParse(completion.choices[0]?.message?.content || "");
+        if (data) res.json(data);
+        else throw new Error("Format Error");
     } catch (error) {
-        console.error("Practice API Error:", error.message);
-        res.status(500).json({ error: "Lỗi kết nối AI hoặc lỗi format dữ liệu." });
+        res.status(500).json({ error: "Lỗi tạo câu hỏi Practice." });
     }
 });
 
-// --- 2. API QUIZ ---
+// --- 5. API QUIZ ---
 app.post('/api/generate-quiz', async (req, res) => {
     const { subject, difficulty, count } = req.body;
-    
-    // Tạo prompt cứng cho Quiz để chống lỗi ngôn ngữ và passage
-    const prompt = `
-    Task: Create a ${count}-question SAT ${subject} quiz (${difficulty} difficulty).
-    
-    STRICT RULES:
-    1. For Reading/Writing, EVERY question MUST have a "passage" (100 words).
-    2. LANGUAGE: "passage", "question", and "options" MUST BE IN ENGLISH. "explanation" MUST BE IN VIETNAMESE.
-    3. RETURN FORMAT: ONLY JSON. No other text.
-    
-    Structure:
-    {
-      "questions": [
-        {
-          "passage": "English text (or null if math)",
-          "question": "English question",
-          "options": ["A) ", "B) ", "C) ", "D) "],
-          "answer": "A",
-          "explanation": "Giải thích tiếng Việt"
-        }
-      ]
-    }`;
+    const prompt = `Create a ${count}-question SAT ${subject} quiz (${difficulty}). Return ONLY JSON: {"questions": [{"passage": "...", "question": "...", "options": ["A) ", "B) ", "C) ", "D) "], "answer": "A", "explanation": "..."}]}`;
 
     try {
         const client = getGroqClient();
         const completion = await client.chat.completions.create({
             messages: [{ role: 'user', content: prompt }],
             model: 'llama-3.1-8b-instant',
-            temperature: 0.5, // Thấp hơn Practice một chút để đảm bảo tính ổn định cho cả mảng dữ liệu
-            response_format: { type: "json_object" } // Ép cứng trả về JSON nếu model hỗ trợ
+            temperature: 0.4,
+            response_format: { type: "json_object" }
         });
-        
-        const content = completion.choices[0]?.message?.content;
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        res.json(JSON.parse(jsonMatch[0]));
+        const data = safeParse(completion.choices[0]?.message?.content || "");
+        res.json(data);
     } catch (error) {
-        console.error("Quiz API Error:", error.message);
-        res.status(500).json({ error: "Lỗi khởi tạo Quiz." });
+        res.status(500).json({ error: "Lỗi tạo Quiz." });
     }
 });
 
-// --- 3. API CHAT TUTOR (Fix lỗi trả về JSON lộn xộn) ---
+// --- 6. API CHAT TUTOR (CHẶN NÓI CHỮ "JSON") ---
 app.post('/api/ai-tutor/chat', async (req, res) => {
     try {
         const client = getGroqClient();
@@ -169,22 +111,17 @@ app.post('/api/ai-tutor/chat', async (req, res) => {
             messages: [
                 { 
                   role: 'system', 
-                  content: 'You are a helpful, encouraging SAT Tutor. Converse naturally with the user in Vietnamese. DO NOT output code blocks or JSON objects unless the user explicitly asks you to generate a structured practice question.' 
+                  content: 'You are a helpful SAT Tutor. Speak Vietnamese. NEVER say "Here is the JSON" or show code blocks. If providing a question, just provide the content naturally unless JSON is required for the app logic.' 
                 },
                 { role: 'user', content: req.body.message }
             ],
             model: 'llama-3.1-8b-instant',
             temperature: 0.7,
         });
-        
         const reply = completion.choices[0].message.content;
-        
-        // Kiểm tra xem AI có vô tình trả về JSON block không
-        const isQuiz = /\{[\s\S]*"question"[\s\S]*\}/.test(reply); 
-        
+        const isQuiz = reply.includes('"question"') && reply.includes('{');
         res.json({ reply, isQuiz });
     } catch (error) {
-        console.error("Chat API Error:", error.message);
         res.status(500).json({ error: "Lỗi AI Tutor." });
     }
 });
