@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. QUẢN LÝ API KEY (Xoay vòng để tránh Rate Limit)
+// --- 1. HỆ THỐNG XOAY VÒNG API KEYS ---
 const keysString = process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY || "";
 const apiKeys = keysString.split(",").map(k => k.trim()).filter(k => k !== "");
 let currentKeyIndex = 0;
@@ -19,134 +19,114 @@ function getGroqClient() {
     return new Groq({ apiKey: key });
 }
 
-// 2. HÀM LỌC JSON AN TOÀN (Chống ký tự lạ làm crash JSON.parse)
-const safeParse = (str) => {
+// --- 2. HÀM LÀM SẠCH JSON (Fix lỗi AI trả về ```json ... ```) ---
+const cleanAndParseJSON = (text) => {
     try {
-        const jsonMatch = str.match(/\{[\s\S]*\}/);
+        // Tìm đoạn nằm giữa { và } để loại bỏ chữ "json" dư thừa hoặc lời dẫn
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) return null;
-        let cleaned = jsonMatch[0]
-            .replace(/[\u0000-\u001F]+/g, " ") 
-            .replace(/\\(?!"|\\|\/|b|f|n|r|t|u)/g, "\\\\");
-        return JSON.parse(cleaned);
-    } catch (e) { return null; }
+        return JSON.parse(jsonMatch[0]);
+    } catch (e) {
+        return null;
+    }
 };
 
-// 3. DANH SÁCH CHỦ ĐỀ TOÁN (Tăng tính đa dạng)
-const mathTopics = [
-    "Linear equations with two variables", "Quadratic functions and graphs",
-    "Ratios and Proportions", "Right triangle trigonometry",
-    "Circle equations in XY-plane", "Exponential growth and decay",
-    "Systems of linear inequalities", "Polynomial factors and graphs"
-];
-
-// 4. API PRACTICE (Tạo câu hỏi đơn lẻ)
+// --- 3. API PRACTICE (Fix lỗi nhầm Reading/Math & Tiếng Việt) ---
 app.get('/api/sat-question', async (req, res) => {
     const category = req.query.category || 'math';
     const client = getGroqClient();
-    if (!client) return res.status(500).json({ error: "Missing API Key" });
+    if (!client) return res.status(500).json({ error: "No API Key" });
 
-    const topic = category === 'math' ? mathTopics[Math.floor(Math.random() * mathTopics.length)] : category;
-    const seed = Math.floor(Math.random() * 100000);
+    const mathSubTopics = ["Linear equations", "Quadratic functions", "Ratios", "Trigonometry", "Circle equations", "Exponential growth"];
+    const randomTopic = mathSubTopics[Math.floor(Math.random() * mathSubTopics.length)];
+    const randomSeed = Math.floor(Math.random() * 10000);
 
-    // ÉP AI DÙNG TIẾNG ANH CHO CÂU HỎI QUA SYSTEM ROLE
-    const prompt = `Task: Generate one unique SAT ${category} question. Topic: ${topic}. Seed: ${seed}.
-    STRICT LANGUAGE RULES:
-    - "passage", "question", "options" MUST BE IN ENGLISH.
-    - "step_by_step_explanation" MUST BE IN VIETNAMESE.
-    - NO LaTeX. Use ^ for powers.
-    - RETURN ONLY JSON.`;
-
-    try {
-        const completion = await client.chat.completions.create({
-            messages: [
-                { role: 'system', content: 'You are an SAT Expert. You always provide questions in English and explanations in Vietnamese.' },
-                { role: 'user', content: prompt }
-            ],
-            model: 'llama-3.1-8b-instant',
-            temperature: 0.5, // Tăng nhẹ để tránh lặp câu hỏi
-            response_format: { type: "json_object" }
-        });
-
-        const data = safeParse(completion.choices[0]?.message?.content || "");
-        if (data) {
-            // Trả về cả 2 kiểu Key để tương thích mọi phiên bản Frontend
-            res.json({
-                passage: data.passage || null,
-                question: data.question || data.text || "Question content missing",
-                options: data.options || [],
-                answer: data.answer || "A",
-                step_by_step_explanation: data.step_by_step_explanation || data.explanation || "Không có giải thích.",
-                explanation: data.explanation || data.step_by_step_explanation || ""
-            });
-        } else { throw new Error("JSON Parse Error"); }
-    } catch (e) {
-        res.status(500).json({ error: "Lỗi tạo câu hỏi" });
-    }
-});
-
-// 5. API QUIZ (Tạo bộ đề - Sửa lỗi kết nối page.tsx)
-app.post('/api/generate-quiz', async (req, res) => {
-    const { subject, difficulty, count } = req.body;
-    const client = getGroqClient();
+    // Ép AI bằng cách nhắc lại Category ở đầu mỗi Prompt
+    let topicInstruction = `Generate a UNIQUE SAT ${category.toUpperCase()} question. `;
     
-    const prompt = `Create a ${count}-question SAT ${subject} quiz. Difficulty: ${difficulty}.
+    if (category === 'math') {
+        topicInstruction += `Topic: ${randomTopic}. Seed: ${randomSeed}. Use ^ for powers. No LaTeX.`;
+    } else {
+        topicInstruction += `Focus on ${category === 'writing' ? 'Standard English Conventions' : 'Information and Ideas'}.`;
+    }
+
+    const prompt = `Role: SAT Expert.
+    Task: ${topicInstruction}
     STRICT RULES:
-    1. "text", "options", "passage" fields MUST BE IN ENGLISH.
-    2. "explanation" field MUST BE IN VIETNAMESE.
-    3. JSON Format: {"questions": [{"text": "...", "options": ["A) ", "B) ", "C) ", "D) "], "correct": 0, "explanation": "..."}]}
-    Note: "correct" is index 0, 1, 2, or 3.`;
+    1. Question/Passage/Options MUST BE IN ENGLISH.
+    2. Explanation MUST BE IN VIETNAMESE.
+    3. Return ONLY JSON: {"passage": "text or null", "question": "text", "options": ["A) ", "B) ", "C) ", "D) "], "answer": "A", "step_by_step_explanation": "..."}`;
 
     try {
         const completion = await client.chat.completions.create({
             messages: [{ role: 'user', content: prompt }],
             model: 'llama-3.1-8b-instant',
-            temperature: 0.6,
-            response_format: { type: "json_object" }
+            temperature: 0.1, // Thấp để tránh AI "sáng tạo" quá đà ra tiếng Việt
         });
 
-        const data = safeParse(completion.choices[0]?.message?.content || "");
+        const parsedData = cleanAndParseJSON(completion.choices[0]?.message?.content || "");
         
-        if (data && data.questions) {
-    const finalizedQuestions = data.questions.map(q => {
-        // Đảm bảo text/question luôn là chuỗi để tránh lỗi .replace() ở Frontend
-        const safeText = String(q.text || q.question || "No question content");
-        
-        return {
-            text: safeText,
-            question: safeText,
-            options: Array.isArray(q.options) ? q.options.map(opt => String(opt)) : ["A", "B", "C", "D"],
-            correct: (q.correct !== undefined) ? Number(q.correct) : 0,
-            explanation: String(q.explanation || q.step_by_step_explanation || "Chưa có giải thích."),
-            passage: q.passage ? String(q.passage) : null
-        };
-    });
-
-    res.json({ questions: finalizedQuestions });
-}
-    } catch (e) {
-        res.status(500).json({ error: "Lỗi kết nối AI" });
+        if (parsedData) {
+            res.json({
+                passage: parsedData.passage || null,
+                question: parsedData.question || "No question content",
+                options: parsedData.options || [],
+                answer: parsedData.answer || "A",
+                step_by_step_explanation: parsedData.step_by_step_explanation || parsedData.explanation || "Không có giải thích."
+            });
+        } else { throw new Error("JSON Error"); }
+    } catch (error) {
+        res.status(500).json({ question: "Lỗi kết nối AI, vui lòng thử lại." });
     }
 });
 
-// 6. API AI TUTOR
+// --- 4. API QUIZ (Sửa lỗi đáp án sai & Cấu trúc JSON) ---
+app.post('/api/generate-quiz', async (req, res) => {
+    const { subject, difficulty, count } = req.body;
+    const client = getGroqClient();
+    
+    // Yêu cầu AI kiểm tra kỹ logic đáp án
+    const prompt = `Create a ${count}-question SAT quiz on ${subject}. Difficulty: ${difficulty}.
+    STRICT RULES:
+    - Language: Questions in English, Explanations in Vietnamese.
+    - Logic: Ensure the 'correct' index (0-3) matches the actual correct option.
+    - Format: {"questions": [{"text": "...", "options": ["A) ", "B) ", "C) ", "D) "], "correct": 0, "explanation": "..."}]}`;
+
+    try {
+        const completion = await client.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: 'llama-3.1-8b-instant',
+            temperature: 0.3,
+        });
+        const data = cleanAndParseJSON(completion.choices[0]?.message?.content);
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: "Không thể tạo Quiz." });
+    }
+});
+
+// --- 5. API AI TUTOR (Xử lý chuỗi JSON sạch sẽ) ---
 app.post('/api/ai-tutor/chat', async (req, res) => {
+    const { message } = req.body;
     const client = getGroqClient();
     try {
         const completion = await client.chat.completions.create({
             messages: [
-                { role: 'system', content: 'You are a friendly SAT Tutor. Speak VIETNAMESE. Only use English for SAT academic terms or questions. Keep it concise.' },
-                { role: 'user', content: req.body.message }
+                { role: 'system', content: 'You are a friendly SAT Tutor. Answer in Vietnamese, use English for SAT terms. If providing a question, use JSON.' },
+                { role: 'user', content: message }
             ],
             model: 'llama-3.1-8b-instant',
-            temperature: 0.7,
         });
+
         const reply = completion.choices[0].message.content;
-        res.json({ reply, isQuiz: reply.trim().startsWith('{') });
-    } catch (e) {
-        res.status(500).json({ error: "Tutor error" });
+        const isJson = reply.trim().includes('{') && reply.trim().includes('}');
+        
+        res.json({ reply, isQuiz: isJson });
+    } catch (error) {
+        res.status(500).json({ error: "Tutor đang bận!" });
     }
 });
 
 const PORT = process.env.PORT || 3010;
 const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-server.timeout = 60000; // Tăng lên 60s cho các bộ Quiz dài
+server.timeout = 60000;
