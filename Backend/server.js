@@ -7,62 +7,50 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- HÀM LẤY API KEY XOAY VÒNG ---
+// --- HÀM XOAY VÒNG KEY ---
 function getGroqClient() {
     const keysString = process.env.GROQ_API_KEYS || "";
     const keys = keysString.split(",").map(k => k.trim()).filter(k => k !== "");
-    const selectedKey = keys.length > 0 
-        ? keys[Math.floor(Math.random() * keys.length)] 
-        : process.env.GROQ_API_KEY;
-    console.log(`Using Key: ${selectedKey ? selectedKey.substring(0, 10) : "MISSING"}...`);
+    const selectedKey = keys.length > 0 ? keys[Math.floor(Math.random() * keys.length)] : process.env.GROQ_API_KEY;
     return new Groq({ apiKey: selectedKey });
 }
 
-// --- 1. API Tạo câu hỏi đơn lẻ (Practice) ---
+// --- 1. API PRACTICE (ĐÃ GIA CỐ CỰC MẠNH) ---
 app.get('/api/sat-question', async (req, res) => {
-    const category = req.query.category || 'math';
-    let topicInstruction = "";
-
-    // Phân loại logic cực kỳ nghiêm ngặt để tránh bị loạn môn
+    // Ép trình duyệt không được cache kết quả
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    
+    const { category } = req.query; // math, reading, writing
+    
+    // TẠO SYSTEM PROMPT RIÊNG BIỆT CHO TỪNG MÔN
+    let systemRole = "";
     if (category === 'math') {
-        topicInstruction = `Generate a UNIQUE SAT MATH question. 
-        - Requirement: Use REAL-WORLD context. 
-        - Math Format: Use standard text (e.g., x^2, sqrt(x)). DO NOT use LaTeX.
-        - Important: Set 'passage' to null.`;
+        systemRole = "You are an SAT Math Expert. Generate ONLY Math questions. No passages. English for questions, Vietnamese for explanations.";
     } else if (category === 'reading') {
-        topicInstruction = `Generate an SAT READING question. 
-        - Requirement: MUST provide a 'passage' (100-150 words) from an academic context.
-        - Question: Must be based strictly on the provided passage.`;
+        systemRole = "You are an SAT Reading Expert. You MUST provide a long academic passage (English). Question and options in English, explanation in Vietnamese.";
     } else if (category === 'writing') {
-        topicInstruction = `Generate an SAT WRITING & LANGUAGE question. 
-        - Requirement: Provide a 'passage' (a short paragraph) with a grammatical underlined part.
-        - Question: Ask to improve the underlined part or fix a punctuation error.`;
+        systemRole = "You are an SAT Writing Expert. Provide a short passage with grammar focus (English). Question in English, explanation in Vietnamese.";
+    } else {
+        systemRole = "You are an SAT Expert. Return ONLY JSON.";
     }
 
-    const prompt = `Role: Senior SAT Expert.
-    Task: ${topicInstruction}
-    
+    const userPrompt = `Generate one UNIQUE SAT ${category.toUpperCase()} question. 
     STRICT RULES:
-    1. Language: Passage, Question, and Options MUST be in ENGLISH.
-    2. Explanation: 'step_by_step_explanation' MUST be in VIETNAMESE.
-    3. Output: Return ONLY a valid JSON object.
-    
-    Structure:
-    {
-      "passage": "English text here for Reading/Writing, or null for Math",
-      "question": "English question content",
-      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-      "answer": "A",
-      "step_by_step_explanation": "Giải thích chi tiết bằng tiếng Việt"
-    }`;
+    1. Language: Passage/Question/Options MUST BE IN ENGLISH.
+    2. Explanation: MUST BE IN VIETNAMESE.
+    3. Format: Return ONLY JSON.
+    JSON: {"passage": "text or null", "question": "string", "options": ["A) ", "B) ", "C) ", "D) "], "answer": "A", "step_by_step_explanation": "Giải thích..."}`;
 
     try {
         const groqClient = getGroqClient();
         const chatCompletion = await groqClient.chat.completions.create({
-            messages: [{ role: 'user', content: prompt }],
-            model: 'llama-3.1-8b-instant', 
-            temperature: 0, // Đưa về 0 để AI bớt "sáng tạo" sai ngôn ngữ
-            max_tokens: 1000
+            messages: [
+                { role: 'system', content: systemRole }, // Ép vai trò AI ở đây
+                { role: 'user', content: userPrompt }
+            ],
+            model: 'llama-3.1-8b-instant',
+            temperature: 0, // Tuyệt đối không để AI sáng tạo sai ngôn ngữ
+            max_tokens: 1200
         });
 
         const aiResponse = chatCompletion.choices[0]?.message?.content || "";
@@ -75,22 +63,22 @@ app.get('/api/sat-question', async (req, res) => {
         }
     } catch (error) {
         console.error("Practice Error:", error.message);
-        res.status(500).json({ error: "Lỗi tạo câu hỏi." });
+        res.status(500).json({ error: "Lỗi hệ thống." });
     }
 });
 
-// --- 2. API Tạo trọn bộ Quiz ---
+// --- 2. API QUIZ (GIA CỐ ĐỘ KHÓ) ---
 app.post('/api/generate-quiz', async (req, res) => {
     const { subject, difficulty, count } = req.body;
-    const prompt = `Create a ${count}-question SAT quiz on ${subject} with ${difficulty} difficulty.
-    - Content: English. Explanation: Vietnamese.
-    - Double check math logic.
+    const prompt = `Create an SAT ${subject.toUpperCase()} quiz. Difficulty: ${difficulty}. 
+    - Questions/Options: English. 
+    - Explanations: Vietnamese.
     - Return ONLY JSON: {"questions": [{"text": "...", "options": ["A) ", "B) ", "C) ", "D) "], "correct": 0, "explanation": "..."}]}`;
 
     try {
         const groqClient = getGroqClient();
         const chatCompletion = await groqClient.chat.completions.create({
-            messages: [{ role: 'user', content: prompt }],
+            messages: [{ role: 'system', content: `You are an SAT Professor specialized in ${difficulty} level.` }, { role: 'user', content: prompt }],
             model: 'llama-3.1-8b-instant',
             temperature: 0.1
         });
@@ -101,14 +89,14 @@ app.post('/api/generate-quiz', async (req, res) => {
     }
 });
 
-// --- 3. API AI Tutor Chat (Fix lỗi dấu ngoặc) ---
+// --- 3. API CHAT (BỎ DẤU NGOẶC KHI NÓI CHUYỆN) ---
 app.post('/api/ai-tutor/chat', async (req, res) => {
     const { message } = req.body;
     try {
         const groqClient = getGroqClient();
         const completion = await groqClient.chat.completions.create({
             messages: [
-                { role: 'system', content: 'You are an SAT Tutor. Always speak Vietnamese. If you send a JSON question, wrap it inside {}.' },
+                { role: 'system', content: 'You are a friendly SAT Tutor. Speak ONLY Vietnamese. If you give a practice question, use JSON format inside your response.' },
                 { role: 'user', content: message }
             ],
             model: 'llama-3.1-8b-instant',
