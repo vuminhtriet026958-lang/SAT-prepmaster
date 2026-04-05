@@ -107,16 +107,22 @@ app.post('/api/generate-quiz', async (req, res) => {
         const data = safeParse(completion.choices[0]?.message?.content || "");
         
         if (data && data.questions) {
-            // Mapping dữ liệu để "đỡ" lỗi cho Frontend nếu page.tsx dùng key khác
-            const finalized = data.questions.map(q => ({
-                ...q,
-                question: q.text, // Backup cho key 'question'
-                answer: String.fromCharCode(65 + (q.correct || 0)) // Chuyển 0 -> A, 1 -> B...
-            }));
-            res.json({ questions: finalized });
-        } else {
-            res.status(422).json({ error: "AI Format Error" });
-        }
+    const finalizedQuestions = data.questions.map(q => {
+        // Đảm bảo text/question luôn là chuỗi để tránh lỗi .replace() ở Frontend
+        const safeText = String(q.text || q.question || "No question content");
+        
+        return {
+            text: safeText,
+            question: safeText,
+            options: Array.isArray(q.options) ? q.options.map(opt => String(opt)) : ["A", "B", "C", "D"],
+            correct: (q.correct !== undefined) ? Number(q.correct) : 0,
+            explanation: String(q.explanation || q.step_by_step_explanation || "Chưa có giải thích."),
+            passage: q.passage ? String(q.passage) : null
+        };
+    });
+
+    res.json({ questions: finalizedQuestions });
+}
     } catch (e) {
         res.status(500).json({ error: "Lỗi kết nối AI" });
     }
