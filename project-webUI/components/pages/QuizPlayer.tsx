@@ -52,48 +52,33 @@ export function QuizPlayer({ questions, onFinish }: QuizPlayerProps) {
       </div>
 
       <Card className="p-8 space-y-6 shadow-2xl border-t-4 border-t-blue-500 bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 transition-all">
-        {/* Nội dung câu hỏi */}
-        <h3 className="text-xl font-bold text-gray-800 dark:text-white leading-relaxed">
-          {currentQuestion.text}
-        </h3>
+  
+  {/* --- BẮT ĐẦU ĐOẠN THÊM MỚI --- */}
+  {currentQuestion.passage && currentQuestion.passage !== "null" && (
+    <div className="mb-8 p-6 bg-slate-50 dark:bg-slate-800/50 border-l-4 border-blue-500 rounded-r-2xl shadow-inner animate-in fade-in slide-in-from-left-4 duration-500">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">
+          Reading Passage
+        </span>
+      </div>
+      <div className="text-gray-700 dark:text-slate-300 leading-relaxed text-base italic prose dark:prose-invert max-w-none">
+        <p className="whitespace-pre-line">
+          {currentQuestion.passage}
+        </p>
+      </div>
+    </div>
+  )}
+  {/* --- KẾT THÚC ĐOẠN THÊM MỚI --- */}
 
-        <div className="grid grid-cols-1 gap-4">
-          {currentQuestion.options.map((option: string, idx: number) => {
-            const isCorrect = idx === currentQuestion.correct;
-            const isSelected = idx === selectedIdx;
-            
-            // Logic màu sắc thông minh
-            let buttonClass = "border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-slate-300";
-            
-            if (isAnswered) {
-              if (isCorrect) {
-                buttonClass = "border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-bold";
-              } else if (isSelected) {
-                buttonClass = "border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 opacity-90";
-              } else {
-                buttonClass = "border-gray-100 dark:border-slate-800 text-gray-400 dark:text-slate-600 opacity-40";
-              }
-            }
+  {/* Nội dung câu hỏi (Dòng cũ của bạn) */}
+  <div className="flex items-start gap-3">
+     <span className="text-2xl mt-1">❓</span>
+     <h3 className="text-xl font-bold text-gray-800 dark:text-white leading-relaxed">
+       {currentQuestion.text}
+     </h3>
+  </div>
 
-            return (
-              <button
-                key={idx}
-                onClick={() => handleAnswer(idx)}
-                disabled={isAnswered}
-                className={`p-5 text-left rounded-2xl border-2 transition-all font-medium flex items-center gap-4 ${buttonClass} ${
-                  isSelected && !isAnswered ? "ring-2 ring-blue-300 dark:ring-blue-800" : ""
-                }`}
-              >
-                <span className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs transition-colors ${
-                  isAnswered && isCorrect ? "bg-green-500 border-green-500 text-white" : "bg-transparent border-current opacity-60"
-                }`}>
-                  {String.fromCharCode(65 + idx)}
-                </span>
-                {option}
-              </button>
-            );
-          })}
-        </div>
+  {/* ... các phần options bên dưới giữ nguyên ... */}
 
         {/* Phần Giải thích */}
         {isAnswered && (
