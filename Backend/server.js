@@ -172,29 +172,45 @@ app.post('/api/generate-quiz', async (req, res) => {
 
         const rawData = JSON.parse(completion.choices[0].message.content);
         
+        // KIỂM TRA: Nếu AI không trả về mảng questions thì báo lỗi luôn, không chạy .map()
+        if (!rawData || !Array.isArray(rawData.questions)) {
+            console.error("AI returned invalid JSON structure:", rawData);
+            return res.status(500).json({ error: "Dữ liệu AI không đúng cấu trúc. Vui lòng thử lại." });
+        }
+
         const finalizedQuestions = rawData.questions.map(q => {
-            // Cải tiến: Kiểm tra đa dạng các trường hợp AI trả về (passage hoặc context)
-            const passageContent = q.passage || q.context || q.content;
-            const hasPassage = passageContent && passageContent.length > 5;
+            const rawPassage = q.passage || q.context || q.content || "";
+            const rawText = q.text || q.question || "";
             
+            let finalPassage = rawPassage;
+            let finalQuestion = rawText;
+
+            // Logic chống đảo ngược: Nếu là Reading/Writing mà Question dài hơn Passage
+            if (subject !== 'math' && rawText.length > rawPassage.length && rawPassage.length < 20) {
+                finalPassage = rawText;
+                finalQuestion = "Based on the passage above, choose the best answer.";
+            }
+
             return {
-                text: safeStr(q.text || q.question),
-                question: safeStr(q.text || q.question),
-                // Fix: Đảm bảo nếu không phải Math thì luôn trả về string, không trả về null
+                text: safeStr(finalQuestion || "Please select the correct option."),
+                question: safeStr(finalQuestion || "Please select the correct option."),
+                // Fix lỗi .length của null cho môn Math
                 passage: (subject !== 'math') 
-                         ? safeStr(passageContent || "The passage text is being generated...") 
-                         : (hasPassage ? safeStr(passageContent) : null),
+                         ? safeStr(finalPassage || "The passage text is being processed...") 
+                         : (finalPassage && finalPassage.length > 5 ? safeStr(finalPassage) : null),
                 options: Array.isArray(q.options) ? q.options.map(safeStr) : ["A","B","C","D"],
                 correct: isNaN(parseInt(q.correct)) ? 0 : parseInt(q.correct),
-                explanation: safeStr(q.explanation),
+                explanation: safeStr(q.explanation || "No explanation provided."),
                 answer: String.fromCharCode(65 + (parseInt(q.correct) || 0))
             };
-        });
+        }); // <-- Đã đóng đúng ngoặc ) cho hàm map
 
         res.json({ questions: finalizedQuestions });
+
     } catch (error) {
-        console.error("QUIZ ERROR:", error);
-        res.status(500).json({ error: "Lỗi tạo Quiz." });
+        // Log chi tiết lỗi ra Terminal để bạn dễ debug
+        console.error("QUIZ ERROR DETAILS:", error.message);
+        res.status(500).json({ error: "Máy chủ AI đang bận hoặc lỗi cú pháp JSON." });
     }
 });
 
