@@ -221,7 +221,7 @@ const [isClient, setIsClient] = useState(false);
         }
         return <CreateQuiz onGenerateQuiz={handleGenerateQuiz} isLoading={isQuizGenerating} />;
       case 'entertainment':
-        return <Entertainment userData={userData} onStartPractice={fetchAIQuestion} satQuestion={satQuestion} isLoading={isLoading} setSatQuestion={setSatQuestion} />;
+        return <Entertainment />;
       case 'profile':
         return <Profile userData={userData} />;
       case 'founders':
